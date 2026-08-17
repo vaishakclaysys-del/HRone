@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  hrone:
+    build: .
+    container_name: hrone_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/hr_mvp.db:/app/data/hr_mvp.db
+      - ./data/resumes:/app/data/resumes
+    restart: unless-stopped
