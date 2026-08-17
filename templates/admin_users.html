@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>User Management</h2>
+
+{% if error %}
+<p class="error">{{ error }}</p>
+{% endif %}
+
+{% if success %}
+<p style="color:green;">{{ success }}</p>
+{% endif %}
+
+<!-- Add New User Form -->
+<div class="card">
+  <h3>Add New User</h3>
+  <form method="post" data-validate-passwords>
+    <div class="row">
+      <label>Username
+        <input type="text" name="username" placeholder="e.g. hr2" required />
+      </label>
+      <label>Full Name
+        <input type="text" name="full_name" placeholder="e.g. HR Two" required />
+      </label>
+      <label>Role
+        <select name="role" id="role_select" required>
+          <option value="">-- Select Role --</option>
+          <option value="hr">HR</option>
+          <option value="senior_dev">Senior Dev</option>
+          <option value="admin">Admin</option>
+          <option value="candidate">Candidate</option>
+        </select>
+      </label>
+    </div>
+
+    <!-- Skills — only shown for senior_dev -->
+    <div id="skills_section" style="display:none; margin-top:12px;">
+      <label style="display:block;margin-bottom:8px;font-weight:bold;">Skills</label>
+      <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:10px 16px;margin-top:6px;">
+        {% for skill in skill_options %}
+        <label style="display:flex;align-items:center;gap:6px;font-weight:normal;font-size:0.9rem;">
+          <input type="checkbox" name="skills" value="{{ skill }}" style="width:15px;height:15px;margin:0;" />
+          {{ skill }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:8px;">
+      <label>Password
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+          <input type="password" id="password" name="password" placeholder="Enter password" required />
+          <button type="button" data-toggle-password="password" data-eye="eye1" style="background:none;border:1px solid #ccc;padding:6px 9px;cursor:pointer;border-radius:3px;">
+            <span id="eye1">👁</span>
+          </button>
+        </div>
+      </label>
+      <label>Confirm Password
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+          <input type="password" id="confirm_password" placeholder="Re-enter password" required />
+        </div>
+      </label>
+    </div>
+
+    <p id="password_error" style="color:#b91c1c;display:none;margin-top:6px;">
+      ❌ Passwords do not match!
+    </p>
+
+    <div style="margin-top:10px;">
+      <button type="submit">Add User</button>
+    </div>
+  </form>
+</div>
+
+<!-- Existing Users Table -->
+<div class="card">
+  <h3>Existing Users</h3>
+  <table>
+    <tr>
+      <th>#</th>
+      <th>Username</th>
+      <th>Full Name</th>
+      <th>Role</th>
+      <th>Skills</th>
+    </tr>
+    {% for u in users %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ u.username }}</td>
+      <td>{{ u.full_name }}</td>
+      <td>{{ u.role }}</td>
+      <td>{{ u.skills or '—' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<script src="{{ root_path }}/static/js/admin_users.js"></script>
+
+{% endblock %}

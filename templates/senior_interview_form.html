@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="assessment-wrap">
+  <div class="assessment-sticky-header">
+
+    {% if interview.status != "completed" %}
+    <div class="score-preview">
+      Calculated Score: <span id="live-score">–</span> / 100
+      <span class="score-preview-hint">(based on all scored parameters)</span>
+    </div>
+    {% endif %}
+  </div>
+
+{% if interview.status == "completed" %}
+{% set name_parts = interview.candidate.name.split() %}
+{% set initials = (name_parts[0][0] ~ (name_parts[-1][0] if name_parts|length > 1 else "")) | upper %}
+<div class="assessment-completed-card">
+  <div class="completed-header">
+    <div class="completed-avatar">{{ initials }}</div>
+    <div class="completed-header-text">
+      <div class="completed-candidate-name">{{ interview.candidate.name }}</div>
+      <div class="completed-candidate-role">AI/ML Engineer Interview</div>
+    </div>
+    <div class="completed-status-pill">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      Completed
+    </div>
+  </div>
+  <div class="completed-body">
+    <div class="completed-title">Assessment Already Submitted</div>
+    <div class="completed-message">You've already completed this interview assessment — no further action is needed.</div>
+    <a href="{{ root_path }}/ai-interview/senior/interviews" class="btn btn-secondary completed-back-btn">← Back to Interviews</a>
+  </div>
+</div>
+{% else %}
+
+  <form method="post" id="assessmentForm" action="{{ root_path }}/ai-interview/submit/{{ interview.id }}" novalidate>
+    <div id="formSections"></div>
+    <button type="submit" class="submit-btn">Submit Interview Assessment</button>
+    <input type="hidden" name="score" id="final_score" value="0" />
+  </form>
+
+  <script id="rubricNameData" type="application/json">{{ rubric_name | tojson }}</script>
+  <script id="rootPathData" type="application/json">{{ root_path | tojson }}</script>
+  <script id="prefillData" type="application/json">{{ {"interviewer_email": "", "interview_date": interview.scheduled_at, "candidate_name": interview.candidate.name if interview.candidate else "", "role_assessed": ""} | tojson }}</script>
+
+  {% endif %}
+</div>
+{% if progress_entries or interviews %}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Event</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in progress_entries %}
+      <tr>
+        <td class="muted">{{ e.created_at }}</td>
+        <td><strong>{{ e.event|replace('_',' ')|title }}</strong></td>
+        <td>{{ e.details or "—" }}</td>
+      </tr>
+      {% endfor %}
+
+      {% set already_resolved = progress_entries | selectattr('event', 'in', ['interview_passed', 'interview_failed']) | list | length > 0 %}
+
+      {% if not already_resolved %}
+        {% set ns = namespace(names={}, pending_count=0) %}
+        {% for s in seniors %}{% set _ = ns.names.update({s.id: s.username}) %}{% endfor %}
+
+        {% for iv in interviews %}
+          {% if iv.id not in scored_interview_ids %}
+          {% set ns.pending_count = ns.pending_count + 1 %}
+          <tr class="timeline-pending-row">
+            <td class="muted">-- -- --</td>
+            <td><strong>Interview Score Submitted</strong><span class="timeline-pending-badge">Pending</span></td>
+            <td>{{ ns.names.get(iv.interviewer_id, 'user #' ~ iv.interviewer_id) }} — Score: pending</td>
+          </tr>
+          {% endif %}
+        {% endfor %}
+
+        {% if ns.pending_count > 0 %}
+        <tr class="timeline-pending-row">
+          <td class="muted">-- -- --</td>
+          <td><strong>Interview Decision</strong><span class="timeline-pending-badge">Pending</span></td>
+          <td>Awaiting all reviews</td>
+        </tr>
+        {% endif %}
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <i class="ti ti-inbox"></i>
+  No timeline events yet.
+</div>
+{% endif %}
+
+{% endblock %}
+{% block topbar_controls %}{% endblock %}
+{% block scripts %}
+{% set root_path = request.scope.get('root_path', '') %}
+<script defer src="{{ root_path }}/static/js/assessment_form.js"></script>
+{% endblock %}

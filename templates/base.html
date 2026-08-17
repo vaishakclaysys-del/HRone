@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    />
+
+    <title>HR One</title>
+
+    {% set root_path = request.scope.get('root_path', '') %}
+
+    <link
+        rel="stylesheet"
+        href="{{ root_path }}/static/style.css"
+    />
+
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"
+    />
+
+    <link rel="icon" href="data:," />
+
+    <link rel="preconnect"
+          href="https://fonts.googleapis.com">
+
+    <link rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    />
+</head>
+
+<body>
+
+{% if user %}
+
+<div class="app-shell">
+
+    {% include "_sidebar.html" %}
+
+    <div class="main">
+
+        <!-- Sticky Header -->
+        <header class="topbar">
+
+            <div class="topbar-left">
+
+                {% block page_title %}
+                {% endblock %}
+
+            </div>
+<div class="topbar-right">
+    {% block topbar_controls %}
+    <div class="search-box">
+        <i class="ti ti-search"></i>
+        <input
+            type="text"
+            placeholder="Search candidates, roles, departments..."
+        >
+    </div>
+
+    <button class="toolbar-btn notification-btn">
+        <i class="ti ti-bell"></i>
+        <span class="notification-dot"></span>
+    </button>
+    {% endblock %}
+</div>
+            
+
+        </header>
+
+{% endif %}
+
+        <main class="content">
+
+            {% block content %}
+            {% endblock %}
+
+        </main>
+
+{% if user %}
+    </div>
+</div>
+{% endif %}
+
+<script defer src="{{ root_path }}/static/js/app.js"></script>
+
+{% block scripts %}
+{% endblock %}
+
+</body>
+</html>

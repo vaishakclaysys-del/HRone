@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block content %}
+ 
+<style>
+  /* Offer letter popup */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-overlay.active {
+    display: flex;
+  }
+  .modal-box {
+    background: #fff;
+    border-radius: 6px;
+    width: 580px;
+    max-height: 88vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-header h3 { margin: 0; font-size: 1rem; }
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    color: #555;
+    padding: 0 4px;
+  }
+  .modal-body {
+    padding: 24px 28px;
+    flex: 1;
+  }
+  .modal-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+ 
+  /* Letter styles */
+  .letter-wrap {
+    font-family: Arial, sans-serif;
+    font-size: 0.88rem;
+    color: #222;
+    line-height: 1.6;
+  }
+  .letter-company {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .letter-logo {
+    width: 36px;
+    height: 36px;
+    background: #1f2937;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: bold;
+    font-size: 0.75rem;
+  }
+  .letter-company-name {
+    font-weight: bold;
+    font-size: 1rem;
+  }
+  .letter-company-tagline {
+    font-size: 0.75rem;
+    color: #888;
+  }
+  .letter-date {
+    text-align: right;
+    color: #555;
+    font-size: 0.82rem;
+    margin-bottom: 16px;
+  }
+  .letter-body { margin-bottom: 14px; }
+  .letter-position-details {
+    background: #f8f9fa;
+    border-left: 3px solid #1f2937;
+    padding: 10px 14px;
+    margin: 14px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .letter-position-details p { margin: 4px 0; font-size: 0.87rem; }
+  .letter-signature { margin-top: 20px; }
+  .letter-sign-name { font-weight: bold; margin-top: 14px; }
+ 
+  /* Buttons */
+  .btn-cancel {
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 8px 18px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.88rem;
+  }
+  .btn-copy {
+    background: #1f2937;
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-copy:hover { background: #374151; }
+  .btn-offer {
+    background: #1f2937;
+    color: #fff;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.82rem;
+  }
+  .btn-offer:hover { background: #374151; }
+  .copied-msg {
+    color: green;
+    font-size: 0.8rem;
+    display: none;
+    align-self: center;
+  }
+</style>
+ 
+<h2>Stage 7: Final Results</h2>
+<div style="display:flex; justify-content:flex-end; margin-bottom:15px; padding-right:100px;">
+  <button
+    onclick="window.location.href=`{{ request.url_for('export_candidates_excel').path }}`"
+    style="
+      padding:8px 14px;
+      background:#1f2937;
+      color:white;
+      border:none;
+      border-radius:6px;
+      cursor:pointer;
+    "
+  >
+    Export to Excel
+  </button>
+</div>
+<table>
+  <tr>
+    <th>Name</th>
+    <th>Phone</th>
+    <th>Stage</th>
+    <th>Status</th>
+    <th>Details</th>
+    {% if user.role == "admin" %}
+    <th>Offer</th>
+    {% endif %}  </tr>
+  {% for c in candidates %}
+  <tr>
+    <td>{{ c.name }}</td>
+    <td>{{ c.phone }}</td>
+    <td>{{ c.stage }}</td>
+    <td>{{ c.status }}</td>
+ <td><a href="{{ request.url_for('final_candidate_summary', candidate_id=c.id).path }}">Expand</a></td>
+     {% if user.role == "admin" %}
+    <td>
+      {% if c.status == "interview_passed" %}
+    <button class="btn-offer offer-btn"
+      data-generate-url="{{ request.url_for('generate_offer_letter_route', candidate_id=c.id).path }}"
+      data-role="{{ c.interviews[0].scores[0].role_assessed if c.interviews and c.interviews[0].scores else '' }}">
+      Generate Offer Letter
+    </button>
+      {% else %}
+      —
+      {% endif %}
+    </td>
+{% endif %}
+  </tr>
+  {% endfor %}
+</table>
+ 
+<!-- Offer Letter Modal -->
+<div class="modal-overlay" id="offerModal"
+  data-generate-url-template="{{ request.url_for('generate_offer_letter_route', candidate_id=999999).path }}">
+  <div class="modal-box">
+
+    <div class="modal-header">
+      <h3>Offer Letter</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="letter-wrap">
+
+        <div class="letter-company">
+          <div class="letter-logo">CT</div>
+          <div>
+            <div class="letter-company-name">Claysys Technologies</div>
+            <div class="letter-company-tagline">Innovation in Technology</div>
+          </div>
+        </div>
+
+        <div class="letter-date" id="letterDate"></div>
+
+        <div id="copyContent">
+          <div id="letterLoading" style="text-align:center; padding:30px 0;">
+            <div class="spinner"></div>
+            <p style="margin-top:12px; color:#666;">Generating offer letter summary…</p>
+          </div>
+          <pre id="letterGeneratedText" style="display:none; white-space:pre-wrap; font-family:inherit; font-size:0.88rem; line-height:1.6; margin:0;"></pre>
+          <p id="letterError" style="display:none; color:#b91c1c;"></p>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <span class="copied-msg" id="copiedMsg">✅ Copied to clipboard!</span>
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-copy" onclick="copyLetter()">📋 Copy Letter</button>
+    </div>
+
+  </div>
+</div>
+
+<script src="{{ root_path }}/static/js/final_result.js"></script>
+ 
+{% endblock %}
+ 

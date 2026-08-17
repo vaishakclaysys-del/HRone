@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Review: {{ candidate.name }}</h2>
+<div class="card">
+  <p><b>GitHub:</b> <a href="{{ candidate.submission.github_link }}" target="_blank">{{ candidate.submission.github_link }}</a></p>
+  <p><b>Video:</b> <a href="{{ candidate.submission.video_link }}" target="_blank">{{ candidate.submission.video_link }}</a></p>
+  <p><b>Recommended Problem:</b>{{ candidate.screening.recommended_problem}}</p>
+</div>
+<form
+    method="post"
+    action="{{ request.url_for('submit_hackathon_review', candidate_id=candidate.id) }}"
+    class="card"
+>
+  <label>Creativity (0-10) <input type="number" min="0" max="10" name="creativity" required></label>
+  <label>Technical Execution (0-10) <input type="number" min="0" max="10" name="technical_execution" required></label>
+  <label>Feasibility (0-6) <input type="number" min="0" max="6" name="feasibility" required></label>
+  <label>Problem Fit & Demo (0-4) <input type="number" min="0" max="4" name="problem_fit_demo" required></label>
+  <label>Comments <textarea name="comments"></textarea></label>
+  <button type="submit">Submit Review</button>
+</form>
+{% endblock %}

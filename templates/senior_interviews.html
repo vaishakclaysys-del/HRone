@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>
+  {% if user.role == "admin" %}
+    Interview Queue
+  {% else %}
+    Stage 6: Interviews Assigned to You
+  {% endif %}
+</h2>
+
+<table class="table">
+  <tr>
+    <th>Candidate</th>
+    <th>Department</th>
+    <th>Interviewer</th>
+    <th>Scheduled</th>
+    <th>Status</th>
+    <th>Action</th>
+  </tr>
+
+  {% if user.role == "admin" %}
+
+    {% for row in interviews %}
+    <tr>
+      <td>{{ row.interview.candidate.name }}</td>
+      <td>{{ row.interview.candidate.department or "-" }}</td>
+      <td>{{ row.interviewer_name }}</td>
+      <td>{{ row.interview.scheduled_at }}</td>
+      <td>
+        {% if row.status == "completed" %}
+          <span class="badge badge-success">Completed</span>
+        {% elif row.status == "scheduled" %}
+          <span class="badge badge-warning">Scheduled</span>
+        {% else %}
+          <span class="badge badge-muted">{{ row.status|replace("_", " ")|title }}</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if row.status == "completed" %}
+          <a class="badge badge-success"
+             href="{{ request.url_for('final_candidate_summary', candidate_id=row.interview.candidate.id).path }}">
+            View Score
+          </a>
+        {% else %}
+          <span class="badge badge-warning">No Score Yet</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+
+  {% else %}
+
+    {% for i in interviews %}
+    <tr>
+      <td>{{ i.candidate.name }}</td>
+      <td>{{ i.candidate.department or "-" }}</td>
+      <td>-</td>
+      <td>{{ i.scheduled_at }}</td>
+      <td>
+        {% if i.status == "completed" %}
+          <span class="badge badge-success">Completed</span>
+        {% elif i.status == "scheduled" %}
+          <span class="badge badge-warning">Scheduled</span>
+        {% else %}
+          <span class="badge badge-muted">{{ i.status|replace("_", " ")|title }}</span>
+        {% endif %}
+      </td>
+      <td>
+        <a href="{{ request.url_for('senior_interview_form', interview_id=i.id).path }}">
+          Open Form
+        </a>
+      </td>
+    </tr>
+    {% endfor %}
+
+  {% endif %}
+</table>
+
+{% endblock %}

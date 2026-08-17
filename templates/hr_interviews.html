@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Interview Scheduling</h2>
+<div class="card">
+  <p><b>Rule:</b> Candidate needs at least 2 reviews and average score >= {{ review_cutoff }}.</p>
+</div>
+
+<form
+    method="post"
+    action="{{ request.url_for('hr_schedule_interview') }}"
+    class="card row"
+>
+  <select name="candidate_id" id="candidateSelect" required>
+    <option value="">Select candidate</option>
+    {% for item in passed_candidates %}
+      <option value="{{ item.candidate.id }}" data-skills="{{ item.candidate.skills or '' }}">{{ item.candidate.name }} (Avg {{ item.avg_score }})</option>
+    {% endfor %}
+  </select>
+
+  <!-- Multi-select interviewer dropdown with checkboxes -->
+  <div class="multi-select-wrapper">
+    <div class="multi-select-trigger">
+      <span class="multi-select-label">Select interviewer</span>
+      <span class="multi-select-arrow">▾</span>
+    </div>
+    <div class="multi-select-dropdown">
+      <label class="multi-select-option">
+        <input type="checkbox" data-auto-suggest="true" value=""> Auto-suggest Interviewer
+      </label>
+      {% for s in seniors %}
+      <label class="multi-select-option">
+        <input type="checkbox" name="interviewer_username[]" value="{{ s.username }}" data-skills="{{ s.skills or '' }}">
+        {{ s.full_name }} ({{ s.username }})
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <input type="datetime-local" name="scheduled_at" required />
+  <button type="submit">Schedule</button>
+</form>
+
+<!-- Match Modal -->
+<div id="matchModal" class="modal-overlay">
+  <div class="modal-box" style="width:480px;padding:24px;">
+    <h3 style="margin:0 0 14px;">Matching Interviewers</h3>
+    <div id="matchList"></div>
+    <button type="button" data-match-close
+      style="margin-top:16px;background:#1f2937;color:#fff;border:none;padding:8px 20px;
+      border-radius:4px;cursor:pointer;width:100%">Close</button>
+  </div>
+</div>
+
+<h3>Eligible Candidates</h3>
+<table>
+  <tr><th>Name</th><th>Reviews</th><th>Average</th><th>Status</th><th>Action</th></tr>
+  {% for item in passed_candidates %}
+  <tr>
+    <td>{{ item.candidate.name }}</td>
+    <td>{{ item.review_count }}</td>
+    <td>{{ item.avg_score }}</td>
+    <td>Passed minimum criteria</td>
+    <td><a href="{{ request.url_for('hr_review_summary', candidate_id=item.candidate.id).path }}">Open</a></td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h3>Pending Reviews</h3>
+<table>
+  <tr><th>Name</th><th>Reviews</th><th>Average</th><th>Status</th><th>Action</th></tr>
+  {% for item in pending_candidates %}
+  <tr>
+    <td>{{ item.candidate.name }}</td>
+    <td>{{ item.review_count }}</td>
+    <td>{{ item.avg_score }}</td>
+    <td>Waiting for {{ 2 - item.review_count }} more review(s)</td>
+    <td><a href="{{ request.url_for('hr_review_summary', candidate_id=item.candidate.id).path }}">Open</a></td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h3>Rejected Candidates</h3>
+<table>
+  <tr><th>Name</th><th>Reviews</th><th>Average</th><th>Status</th><th>Action</th></tr>
+  {% for item in rejected_candidates %}
+  <tr>
+    <td>{{ item.candidate.name }}</td>
+    <td>{{ item.review_count }}</td>
+    <td>{{ item.avg_score }}</td>
+    <td>Rejected (below cutoff)</td>
+    <td><a href="{{ request.url_for('hr_review_summary', candidate_id=item.candidate.id).path }}">Open</a></td>
+  </tr>
+  {% endfor %}
+</table>
+
+<style>
+.multi-select-wrapper {
+  position: relative;
+  min-width: 220px;
+}
+.multi-select-trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13.3333px;
+}
+.multi-select-trigger:hover { border-color: #888; }
+.multi-select-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  z-index: 100;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.multi-select-dropdown.open { display: block; }
+.multi-select-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13.3333px;
+  transition: background 0.15s;
+}
+.multi-select-option:hover { background: #f0f4ff; }
+.multi-select-option input[type="checkbox"] {
+  accent-color: #4f6ef7;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+</style>
+
+<script src="{{ root_path }}/static/js/interviews.js"></script>
+{% endblock %}

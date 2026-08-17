@@ -1,0 +1,32 @@
+<div class="card">
+  <div class="card-header">
+    <h3>Timeline</h3>
+  </div>
+
+  {% if timeline_rows %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Event</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        {% for row in timeline_rows %}
+        <tr {% if not row.completed %}class="timeline-pending-row"{% endif %}>
+          <td class="muted">{{ row.time.strftime('%Y-%m-%d %H:%M:%S') if row.time else '-- -- --' }}</td>
+          <td>
+            <strong>{{ row.label }}</strong>
+            {% if not row.completed %}<span class="timeline-pending-badge">Pending</span>{% endif %}
+          </td>
+          <td>{{ row.description }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="ti ti-inbox"></i>
+    No timeline events yet.
+  </div>
+  {% endif %}
+</div>

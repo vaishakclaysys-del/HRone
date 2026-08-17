@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-head">
+
+    <div>
+        <p class="eyebrow">Full Pipeline</p>
+        <h1 class="page-title">{{ selected_department_label }}</h1>
+        <p class="page-sub">Every active candidate and their progress through the hiring flow.</p>
+    </div>
+
+    <div class="dept-dropdown">
+        <select
+            id="department-select"
+            class="dept-select"
+            onchange="window.location.href = '?department=' + encodeURIComponent(this.value)"
+        >
+            {% for dept in departments %}
+                <option
+                    value="{{ dept.id }}"
+                    {% if selected_department == dept.id %}selected{% endif %}
+                >
+                    {{ dept.label }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+</div>
+
+<div class="candidate-pipeline candidate-pipeline--full">
+
+    {% if candidates %}
+
+        {% for candidate in candidates %}
+
+            <div class="candidate-card">
+
+                <div class="candidate-top">
+
+                    <div>
+
+                        <span class="candidate-tag {{ candidate.flow_tag_class }}">
+                            {{ candidate.flow_tag_label }}
+                        </span>
+
+                        <h3>{{ candidate.name }}</h3>
+
+                        <p>
+                            Applied {{ candidate.applied_ago }} · {{ candidate.role_label }} · {{ candidate.department }}
+                        </p>
+
+                    </div>
+
+                    <div class="candidate-score">
+
+                        <span class="score">{{ candidate.score_display }}</span>
+                        <small>{{ candidate.score_sublabel }}</small>
+
+                    </div>
+
+                </div>
+
+                <div class="pipeline-progress">
+
+                    <div class="progress {{ candidate.stage_colors[0] }}"></div>
+                    <div class="progress {{ candidate.stage_colors[1] }}"></div>
+                    <div class="progress {{ candidate.stage_colors[2] }}"></div>
+                    <div class="progress {{ candidate.stage_colors[3] }}"></div>
+
+                </div>
+
+                <div class="candidate-footer">
+
+                    <span>
+                        Current:
+                        <strong>{{ candidate.stage_label }}</strong>
+                    </span>
+
+                    <span>
+                        {{ candidate.reviewer_count }} Reviewer{{ "s" if candidate.reviewer_count != 1 else "" }}
+                    </span>
+
+                </div>
+
+            </div>
+
+        {% endfor %}
+
+    {% else %}
+
+        <div class="empty-state">
+            <i class="ti ti-inbox"></i>
+            <span>No active candidates in {{ selected_department_label }} yet.</span>
+        </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

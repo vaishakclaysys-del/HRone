@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .login-wrapper {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .login-box {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 36px 40px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  }
+  .login-box h2 {
+    margin: 0 0 6px 0;
+    font-size: 1.4rem;
+    color: #1f2937;
+  }
+  .login-box .subtitle {
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 24px;
+  }
+  .login-box .subtitle a {
+    color: #4a90d9;
+    text-decoration: none;
+  }
+  .login-box .subtitle a:hover {
+    text-decoration: underline;
+  }
+  .login-box label {
+    display: block;
+    font-size: 0.88rem;
+    color: #444;
+    margin-bottom: 14px;
+  }
+  .login-box label span {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+  }
+  .login-box input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 9px 11px;
+    font-size: 0.88rem;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  .login-box input:focus {
+    border-color: #1f2937;
+  }
+  .login-box button {
+    width: 100%;
+    background: #1f2937;
+    color: #fff;
+    border: none;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: background 0.15s;
+  }
+  .login-box button:hover {
+    background: #374151;
+  }
+  .login-box .error {
+    color: #c0392b;
+    font-size: 0.84rem;
+    margin-top: 10px;
+    background: #fdecea;
+    border: 1px solid #f5c6c6;
+    border-radius: 3px;
+    padding: 7px 10px;
+  }
+  .login-box .hint {
+    margin-top: 16px;
+    font-size: 0.78rem;
+    color: #aaa;
+    text-align: center;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 12px;
+  }
+</style>
+
+<div class="login-wrapper">
+  <div class="login-box">
+    <h2>Login</h2>
+    <p class="subtitle">
+      No account? <a href="{{ request.url_for('candidate_submit_page').path }}">
+  Submit as candidate
+</a> — no login needed.
+    </p>
+
+    <form method="post" action="{{ request.url_for('login').path }}">
+      <label>
+        <span>Username</span>
+        <input name="username" required placeholder="Enter username" />
+      </label>
+      <label>
+        <span>Password</span>
+        <input name="password" type="password" required placeholder="Enter password" />
+      </label>
+      <button type="submit">Login</button>
+      {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    </form>
+  </div>
+</div>
+
+{% endblock %}

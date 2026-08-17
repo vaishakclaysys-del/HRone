@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Stage 1 Utility: Merge Excel Files</h2>
+<div class="card">
+  <p>Upload HR master Excel and screening result Excel to call ResumeAPI <code>/merge-excel</code>.</p>
+</div>
+<form method="post" action="{{ request.url_for('hr_merge_excel').path }}" enctype="multipart/form-data" class="card">
+  <label>HR Excel File
+    <input type="file" name="hr_file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+  </label>
+  <label>Screening Excel File
+    <input type="file" name="screening_file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+  </label>
+  <button type="submit">Merge Files</button>
+</form>
+{% if message %}
+<div class="card">
+  <p>{{ message }}</p>
+  {% if result %}
+  <pre>{{ result }}</pre>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

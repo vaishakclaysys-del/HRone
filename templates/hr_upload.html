@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- ================================================================
+     Backend contract (see hr_upload_routes.py):
+
+     candidates: list of dicts:
+        {
+          "id", "name", "email", "filename", "role", "department",
+          "experience_years", "match_score",
+          "status_tab": "new" | "parsed" | "routed" | "rejected",
+          "skills": list[str],
+          "flow": "ai_hackathon_flow" | "ai_interview_flow" | None,
+          "flow_label": str | None,   # "AI Hackathon" / "AI Interview"
+          "flow_class": str | None,   # "purple" / "blue"
+        }
+     tab_counts: {"all", "new", "parsed", "routed", "rejected"}
+     departments: list[str]
+     ai_ml_department: str
+     ================================================================ -->
+
+<div class="page-head">
+    <div>
+        <span class="eyebrow-mini">HIRING FLOW &nbsp;·&nbsp; STEP 1</span>
+        <h1 class="page-title"><i class="ti ti-inbox"></i> Resume Inbox</h1>
+        <p class="page-sub">Drop resumes, AI parses them, you shortlist and route to the right flow.</p>
+    </div>
+<p class="mt-3">
+    <a href="javascript:void(0)" id="openMergeExcel" class="btn-link">
+        <i class="ti ti-table"></i> Merge Excel Utility
+    </a>
+</p>
+
+<div id="inboxConfig" data-ai-ml-department="{{ ai_ml_department }}" hidden></div>
+
+<div id="mergeModal" class="modal-overlay" hidden>
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>Merge Excel Utility</h3>
+            <button class="modal-close" id="closeMergeModal">✕</button>
+        </div>
+        <div class="modal-body">
+            <form method="post" action="{{ request.url_for('hr_merge_excel').path }}" enctype="multipart/form-data" onsubmit="showLoader('Merging files...')">
+                <label class="form-label">HR Excel File</label>
+                <input type="file" name="hr_file"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    required class="field-wide" />
+                <p class="form-help">Screening Excel is auto-generated from uploaded candidates and screening records.</p>
+                <button type="submit" class="btn-primary mt-2">Merge Files</button>
+            </form>
+
+            {% if merge_message %}
+            <div class="alert info mt-3">
+                <p style="margin:0;">{{ merge_message }}</p>
+                {% if merge_result %}
+                <pre style="margin-top:8px;">{{ merge_result }}</pre>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+    <!-- <button type="button" class="btn-primary" id="bulkUploadBtn">
+        <i class="ti ti-upload"></i> Bulk upload
+    </button> -->
+</div>
+
+<!-- ================= DRAG & DROP ZONE ================= -->
+<form
+    id="uploadForm"
+    method="post"
+    action="{{ request.url_for('hr_upload').path }}"
+    enctype="multipart/form-data"
+>
+    <div class="dropzone" id="dropzone">
+        <div class="dropzone-icons">
+            <span class="dropzone-icon"><i class="ti ti-upload"></i></span>
+            <span class="dropzone-icon dropzone-icon-accent"><i class="ti ti-sparkles"></i></span>
+        </div>
+        <p class="dropzone-title">Drag &amp; drop resumes here</p>
+        <p class="dropzone-hint">PDF, DOC, DOCX &nbsp;·&nbsp; bulk supported &nbsp;·&nbsp; AI parses department, skills &amp; match score</p>
+        <input
+            type="file"
+            id="resumeInput"
+            name="resumes"
+            accept=".pdf,.doc,.docx,.zip,application/pdf,application/zip"
+            multiple
+            required
+            hidden
+        />
+    </div>
+</form>
+
+<!-- ================= TABS + SEARCH + FILTER ================= -->
+<div class="inbox-toolbar">
+    <div class="inbox-tabs" id="inboxTabs">
+        <button type="button" class="inbox-tab is-active" data-filter="all">
+            All <span class="k-count">{{ tab_counts.all if tab_counts else 0 }}</span>
+        </button>
+        <button type="button" class="inbox-tab" data-filter="new">
+            New <span class="k-count">{{ tab_counts.new if tab_counts else 0 }}</span>
+        </button>
+        <button type="button" class="inbox-tab" data-filter="parsed">
+            Parsed <span class="k-count">{{ tab_counts.parsed if tab_counts else 0 }}</span>
+        </button>
+        <button type="button" class="inbox-tab" data-filter="routed">
+            Routed <span class="k-count">{{ tab_counts.routed if tab_counts else 0 }}</span>
+        </button>
+        <button type="button" class="inbox-tab" data-filter="rejected">
+            Rejected <span class="k-count">{{ tab_counts.rejected if tab_counts else 0 }}</span>
+        </button>
+    </div>
+
+    <div class="inbox-toolbar-right">
+        <div class="search-box">
+            <i class="ti ti-search"></i>
+            <input type="text" id="candidateSearch" placeholder="Search name, role..." />
+        </div>
+        <div class="dept-dropdown">
+            <select id="departmentFilter" class="dept-select">
+                <option value="">All departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept }}">{{ dept }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- ================= TABLE + DETAIL PANEL ================= -->
+<div class="inbox-layout">
+
+    <div class="table-wrap">
+        <table class="table" id="candidateTable">
+            <tr>
+                <th>Candidate</th>
+                <th>Role / Dept</th>
+                <th>Match</th>
+                <th>Status</th>
+                <th style="text-align:right;">Actions</th>
+            </tr>
+
+            {% for c in candidates %}
+            <tr
+                class="candidate-row"
+                data-status="{{ c.status_tab }}"
+                data-name="{{ c.name|lower }}"
+                data-role="{{ c.role|lower }}"
+                data-department="{{ c.department }}"
+                data-id="{{ c.id }}"
+                data-email="{{ c.email }}"
+                data-match="{{ c.match_score if c.match_score is not none else '' }}"
+                data-experience="{{ c.experience_years if c.experience_years is not none else '' }}"
+                data-role-full="{{ c.role }}"
+                data-skills="{{ c.skills|join(', ') if c.skills else '' }}"
+                data-decision-url="{{ request.url_for('hr_decision', candidate_id=c.id).path }}"
+            >
+                <td>
+                    <div class="candidate-cell">
+                        <div class="avatar-badge avatar-sm">{{ c.name[:2]|upper }}</div>
+                        <div>
+                            <div class="candidate-name">{{ c.name }}</div>
+                            <div class="candidate-file muted">{{ c.filename }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div>{{ c.role }}</div>
+                    <div class="muted" style="font-size:12px;">{{ c.department }}{% if c.experience_years is not none %} &nbsp;·&nbsp; {{ c.experience_years }}y exp{% endif %}</div>
+                </td>
+                <td>
+                    {% if c.match_score is not none %}
+                    <span class="match-badge {% if c.match_score >= 80 %}match-high{% elif c.match_score >= 60 %}match-mid{% else %}match-low{% endif %}">
+                        {{ c.match_score }}%
+                    </span>
+                    {% else %}
+                    <span class="muted">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge
+                        {% if c.status_tab == 'new' %}badge-muted
+                        {% elif c.status_tab == 'parsed' %}badge-info
+                        {% elif c.status_tab == 'routed' %}badge-success
+                        {% else %}badge-danger{% endif %}">
+                        {{ c.status_tab|upper }}
+                    </span>
+                </td>
+                <td>
+                    {% if c.status_tab in ('new', 'parsed') %}
+                    <div class="row-actions">
+                        <button type="button" class="action-pill action-shortlist"
+                            data-action="shortlist"
+                            data-candidate-id="{{ c.id }}"
+                            data-candidate-name="{{ c.name }}"
+                            data-department="{{ c.department }}">
+                            <i class="ti ti-circle-check"></i> Shortlist
+                        </button>
+                        <button type="button" class="action-pill action-reject"
+                            data-action="reject"
+                            data-candidate-id="{{ c.id }}"
+                            data-candidate-name="{{ c.name }}">
+                            <i class="ti ti-circle-x"></i> Reject
+                        </button>
+                    </div>
+                    {% elif c.status_tab == 'routed' %}
+                    <div style="text-align:right;">
+                        <span class="k-flow-badge {{ c.flow_class }}">{{ c.flow_label }}</span>
+                    </div>
+                    {% else %}
+                    <div style="text-align:right;" class="muted">—</div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5">
+                    <div class="empty-state">
+                        <i class="ti ti-inbox"></i>
+                        <span>No resumes yet. Drop some above to get started.</span>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <!-- ================= DETAIL PANEL ================= -->
+    <div class="detail-panel card" id="detailPanel">
+        <div class="detail-panel-empty" id="detailEmpty">
+            <i class="ti ti-user-circle"></i>
+            <p>Select a candidate to see details</p>
+        </div>
+
+        <div id="detailContent" style="display:none;">
+            <div class="detail-panel-head">
+                <div class="avatar-badge" id="detailAvatar">--</div>
+                <div>
+                    <h3 id="detailName" style="margin:0;">—</h3>
+                    <span class="muted" id="detailEmail">—</span>
+                </div>
+            </div>
+
+            <span class="badge badge-info mt-2" id="detailStatusBadge">NEW</span>
+
+            <div class="detail-stats mt-3">
+                <div class="detail-stat">
+                    <span class="detail-stat-label">Match</span>
+                    <span class="detail-stat-value" id="detailMatch">—</span>
+                </div>
+                <div class="detail-stat">
+                    <span class="detail-stat-label">Experience</span>
+                    <span class="detail-stat-value" id="detailExperience">—</span>
+                </div>
+            </div>
+
+            <div class="detail-block mt-3">
+                <label class="detail-block-label">Role</label>
+                <p id="detailRole">—</p>
+            </div>
+
+            <div class="detail-block mt-2">
+                <label class="detail-block-label">Top skills (parsed)</label>
+                <div id="detailSkills"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ================= ROUTE SELECTION MODAL ================= -->
+<div id="routeModal" class="modal-overlay" hidden>
+    <div class="modal-box">
+        <h3>Route Candidate</h3>
+        <p class="modal-sub">
+            Choose a flow for <strong id="routeCandidateName"></strong>.
+        </p>
+
+        <!-- action left empty on purpose: JS sets it per-candidate
+             (form.action = decisionUrl) before the modal opens, and the
+             submit is intercepted via fetch so it never navigates. -->
+        <form id="routeForm" method="post" action="">
+            <input type="hidden" name="decision" value="accept" />
+            <input type="hidden" name="notes" value="Shortlisted via Resume Inbox" />
+
+            <div id="routeOptions" class="radio-row" style="flex-direction:column; align-items:flex-start; gap:12px;"></div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="cancelRoute">Cancel</button>
+                <button type="submit" class="btn-primary">Confirm &amp; Route</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= LOADER ================= -->
+<div id="loader" class="loader-overlay">
+    <div class="loader-box">
+        <div class="spinner"></div>
+        <p class="loader-title" id="loaderTitle">Uploading resumes...</p>
+        <p class="loader-hint">Please wait, do not refresh the page</p>
+    </div>
+</div>
+
+<!-- ================= MERGE EXCEL UTILITY ================= -->
+<!-- <p class="mt-3">
+    <a href="javascript:void(0)" id="openMergeExcel" class="btn-link">
+        <i class="ti ti-table"></i> Merge Excel Utility
+    </a>
+</p>
+
+<div id="mergeModal" class="modal-overlay" hidden>
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>Merge Excel Utility</h3>
+            <button class="modal-close" id="closeMergeModal">✕</button>
+        </div>
+        <div class="modal-body">
+            <form method="post" action="{{ request.url_for('hr_merge_excel').path }}" enctype="multipart/form-data" onsubmit="showLoader('Merging files...')">
+                <label class="form-label">HR Excel File</label>
+                <input type="file" name="hr_file"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    required class="field-wide" />
+                <p class="form-help">Screening Excel is auto-generated from uploaded candidates and screening records.</p>
+                <button type="submit" class="btn-primary mt-2">Merge Files</button>
+            </form>
+
+            {% if merge_message %}
+            <div class="alert info mt-3">
+                <p style="margin:0;">{{ merge_message }}</p>
+                {% if merge_result %}
+                <pre style="margin-top:8px;">{{ merge_result }}</pre>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div> -->
+
+<script src="{{ root_path }}/static/js/resume_inbox.js"></script>
+
+{% endblock %}

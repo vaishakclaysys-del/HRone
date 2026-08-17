@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- ================= HEADER ================= -->
+<div class="welcome-header" style="margin-bottom:20px;">
+  <div class="welcome-left">
+    <div class="avatar-badge">{{ candidate.name[0]|upper }}</div>
+    <div class="welcome-text">
+      <p class="welcome-name" style="margin:0;">{{ candidate.name }}</p>
+      <span class="welcome-role">Review Summary &nbsp;·&nbsp; {{ candidate.phone }}</span>
+    </div>
+  </div>
+
+  {% if ai_interview_flow %}
+    <span class="badge badge-info">Interview Eligible</span>
+  {% elif submission_missing %}
+    <span class="badge badge-muted">Awaiting Submission</span>
+  {% elif is_passed %}
+    <span class="badge badge-success">Eligible for Interview</span>
+  {% else %}
+    <span class="badge badge-danger">Not Eligible</span>
+  {% endif %}
+</div>
+
+<!-- ================= STATUS CARD ================= -->
+<div class="card">
+
+  {% if ai_interview_flow %}
+
+    <div class="alert info">
+      This candidate belongs to the <b>AI Interview Flow</b>. No hackathon submission is required.
+    </div>
+
+  {% elif submission_missing %}
+
+    <div class="alert warning">
+      This candidate has not submitted the hackathon yet.
+    </div>
+
+  {% else %}
+
+    <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom:20px;">
+      <div class="stat-card">
+        <div class="stat-icon"><i class="ti ti-users"></i></div>
+        <div>
+          <h2>{{ review_count }}</h2>
+          <span>Total Reviews</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><i class="ti ti-chart-bar"></i></div>
+        <div>
+          <h2>{{ average }}</h2>
+          <span>Average Score</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><i class="ti ti-target-arrow"></i></div>
+        <div>
+          <h2>{{ review_cutoff }}</h2>
+          <span>Cutoff (min. 2 reviews)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-list">
+      <div class="detail-row">
+        <label>GitHub Submission</label>
+        <div class="detail-value">
+          {% if candidate.submission %}
+            <a href="{{ candidate.submission.github_link }}" target="_blank">
+              {{ candidate.submission.github_link }}
+            </a>
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="detail-row">
+        <label>Eligible for Interview</label>
+        <div class="detail-value">
+          {% if is_passed %}
+            <span class="badge badge-success">Yes</span>
+          {% else %}
+            <span class="badge badge-danger">No</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  {% endif %}
+
+</div>
+
+<!-- ================= REVIEWS TABLE ================= -->
+{% if not ai_interview_flow and not submission_missing %}
+
+<div class="card">
+  <div class="card-header">
+    <h3>Reviewer Scores</h3>
+  </div>
+
+  {% if reviews %}
+  <div class="table-wrap">
+    <table class="table">
+      <tr>
+        <th>Reviewer ID</th>
+        <th>Creativity</th>
+        <th>Technical</th>
+        <th>Feasibility</th>
+        <th>Problem Fit</th>
+        <th>Weighted Total</th>
+        <th>Comments</th>
+      </tr>
+
+      {% for r in reviews %}
+      <tr>
+        <td>{{ r.reviewer_id }}</td>
+        <td>{{ r.creativity }}</td>
+        <td>{{ r.technical_execution }}</td>
+        <td>{{ r.feasibility }}</td>
+        <td>{{ r.problem_fit_demo }}</td>
+        <td><b>{{ r.weighted_total }}</b></td>
+        <td class="muted">{{ r.comments or "—" }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="ti ti-inbox"></i>
+    No reviews submitted yet.
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% include "timeline.html" %}
+
+{% endblock %}

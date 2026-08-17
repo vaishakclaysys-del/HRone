@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-head">
+
+    <div>
+        <h1 class="page-title">
+            Talent Pipeline
+        </h1>
+
+        <p class="page-sub">
+            Stage-by-stage view across hiring flow.
+        </p>
+    </div>
+
+    <div class="dept-dropdown">
+        <select
+            id="department-select"
+            class="dept-select"
+            onchange="window.location.href = this.value"
+        >
+            {% for dept in departments %}
+                <option
+                    value="?department={{ dept.id }}{% if search %}&search={{ search }}{% endif %}"
+                    {% if selected_department == dept.id %}selected{% endif %}
+                >
+                    {{ dept.label }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+</div>
+
+<div class="kanban">
+
+    {% for column in pipeline_data %}
+
+        <div class="kanban-col">
+
+            <h4>
+                <span>{{ column.title }}</span>
+                <span class="k-count">{{ column.candidates|length }}</span>
+            </h4>
+
+            <div class="kanban-col-body" data-column-title="{{ column.title }}">
+
+                {% if column.candidates %}
+
+                    {% for candidate in column.candidates %}
+
+                        {% if column.title == "Hackathon Submitted" %}
+                            {% set card_url = request.url_for('hr_review_summary', candidate_id=candidate.id) %}
+                        {% elif column.title in ["Interview Scheduled", "Interview Completed"]  %}
+                            {% set card_url = request.url_for('final_candidate_detail', candidate_id=candidate.id) %}
+                        {% else %}
+                            {% set card_url = request.url_for('hr_candidate_detail', candidate_id=candidate.id) %}
+                        {% endif %}
+
+                        <div
+                            class="kanban-card"
+                            draggable="true"
+                            data-candidate-id="{{ candidate.id }}"
+                            data-candidate-name="{{ candidate.name }}"
+                            data-status="{{ candidate.status }}"
+                            data-flow="{{ candidate.flow }}"
+                            data-skills="{{ candidate.skills or '' }}"
+                            data-url="{{ card_url }}"
+                        >
+                            <div class="k-badge-row">
+                                <div class="k-flow-badge {{ candidate.flow_class }}">
+                                    {{ candidate.flow_label }}
+                                </div>
+
+                                {% if column.title == "Hackathon Submitted" %}
+                                    {% if (candidate.review_count or 0) < 2 %}
+    <div class="k-score k-score-progress"
+         title="{{ candidate.review_count or 0 }} of 2 reviews submitted">
+        {{ candidate.review_count or 0 }}/2 Reviews
+    </div>
+{% else %}
+    <div class="k-score {% if candidate.status == 'failed_stage4' %}k-score-fail{% elif candidate.status == 'passed_stage4' %}k-score-pass{% endif %}">
+        {{ candidate.assessment_score }}
+    </div>
+{% endif %}
+
+                                {% elif column.title == "Interview Completed" and candidate.interview_score is not none %}
+                                    <div class="k-score {% if candidate.status == 'interview_failed' %}k-score-fail{% elif candidate.status == 'interview_passed' %}k-score-pass{% endif %}">
+                                        {{ candidate.interview_score }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="k-top">
+                                <div class="k-name">
+                                    {{ candidate.name }}
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+
+                            <div class="k-footer">
+                                <div class="k-time">
+                                    {{ candidate.updated_at_display }}
+                                </div>
+                            </div>
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <div class="empty-state">
+                        <i class="ti ti-inbox"></i>
+                        <span>No candidates</span>
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    {% endfor %}
+
+</div>
+
+<!-- Schedule Interview modal — opened when a card is dropped on "Interview Scheduled" -->
+<div id="scheduleModal" class="modal-overlay" hidden>
+    <div class="modal-box">
+        <h3>Schedule Interview</h3>
+        <p class="modal-sub">
+            Assign interviewer(s) and a time for <strong id="modalCandidateName"></strong>.
+        </p>
+
+        <form
+            id="scheduleForm"
+            method="post"
+            action="{{ request.url_for('hr_schedule_interview') }}"
+        >
+            <input type="hidden" name="candidate_id" id="modalCandidateId" />
+
+            <div class="multi-select-wrapper">
+                <div class="multi-select-trigger" onclick="toggleDropdown(this)">
+                    <span class="multi-select-label">Select interviewer</span>
+                    <span class="multi-select-arrow">▾</span>
+                </div>
+                <div class="multi-select-dropdown">
+                    <label class="multi-select-option">
+                        <input type="checkbox" value="" onchange="handleAutoSuggest(this)">
+                        Auto-suggest Interviewer
+                    </label>
+                    {% for s in seniors %}
+                    <label class="multi-select-option">
+                        <input
+                            type="checkbox"
+                            name="interviewer_username[]"
+                            value="{{ s.username }}"
+                            data-skills="{{ s.skills or '' }}"
+                            onchange="updateLabel(this.closest('.multi-select-wrapper')); closeMultiSelectDropdown(this.closest('.multi-select-wrapper'));"
+                        >
+                        {{ s.full_name }} ({{ s.username }})
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <label class="modal-field">
+                Date &amp; time
+                <input type="datetime-local" name="scheduled_at" required />
+            </label>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeScheduleModal()">Cancel</button>
+                <button type="submit" class="btn-primary">Confirm &amp; Schedule</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Match Modal (interviewer auto-suggest results) -->
+<div id="matchModal" class="modal-overlay" hidden>
+    <div class="modal-box">
+        <h3>Matching Interviewers</h3>
+        <div id="matchList"></div>
+        <button type="button" class="btn-secondary" style="margin-top:16px;width:100%;" onclick="document.getElementById('matchModal').hidden = true;">
+            Close
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script src="{{ root_path }}/static/js/talent_pipeline.js"></script>
+{% endblock %}

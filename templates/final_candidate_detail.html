@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- ================= HEADER ================= -->
+<div class="welcome-header" style="margin-bottom:20px;">
+  <div class="welcome-left">
+    <div class="avatar-badge">{{ candidate.name[0]|upper }}</div>
+    <div class="welcome-text">
+      <p class="welcome-name" style="margin:0;">{{ candidate.name }}</p>
+      <span class="welcome-role">{{ candidate.email }} &nbsp;·&nbsp; {{ candidate.phone }}</span>
+    </div>
+  </div>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <span class="badge
+      {% if candidate.status in ['accepted','passed_stage4','interview_passed'] %}badge-success
+      {% elif candidate.status in ['rejected','failed_stage4','interview_failed'] %}badge-danger
+      {% elif candidate.status in ['new','parsed'] %}badge-muted
+      {% else %}badge-info{% endif %}">
+      {{ candidate.status|replace('_',' ')|title }}
+    </span>
+  </div>
+</div>
+
+{% if candidate.skills %}
+<div class="card" style="padding:14px 22px;">
+  {% for s in candidate.skills.split(',') %}
+    <span class="badge badge-muted" style="margin-right:4px;">{{ s.strip() }}</span>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if message %}
+<div class="alert success">{{ message }}</div>
+{% endif %}
+
+{% if error %}
+<div class="alert danger">{{ error }}</div>
+{% endif %}
+
+<!-- ================= INTERVIEWERS ================= -->
+<div class="card">
+  <div class="card-header">
+    <h3>Interviewers</h3>
+  </div>
+
+  {% if user.role == "admin" %}
+  <form
+    method="post"
+    action="{{ request.url_for('final_add_interviewer', candidate_id=candidate.id).path }}"
+    class="schedule-row"
+    style="grid-template-columns: 1fr 1fr auto; margin-bottom:18px;"
+  >
+    <select name="interviewer_id" required>
+      <option value="">Select interviewer</option>
+      {% for s in seniors %}
+      <option value="{{ s.id }}">{{ s.full_name }} ({{ s.username }})</option>
+      {% endfor %}
+    </select>
+    <input type="datetime-local" name="scheduled_at" required />
+    <button type="submit" class="btn-primary">Add Interviewer</button>
+  </form>
+  {% endif %}
+
+  <div class="table-wrap">
+    <table class="table">
+      <tr>
+        <th>Scheduled At</th>
+        <th>Status</th>
+        <th>Current Interviewer</th>
+        {% if user.role == "admin" %}
+        <th>Edit Interviewer</th>
+        {% endif %}
+      </tr>
+      {% for interview in interviews %}
+      <tr>
+        <td>{{ interview.scheduled_at }}</td>
+        <td>
+          <span class="badge
+            {% if interview.status == 'completed' %}badge-success
+            {% elif interview.status == 'scheduled' %}badge-info
+            {% else %}badge-muted{% endif %}">
+            {{ interview.status|title }}
+          </span>
+        </td>
+        <td>
+          {% set current = namespace(name="Not Assigned") %}
+          {% for s in seniors %}
+            {% if s.id == interview.interviewer_id %}
+              {% set current.name = s.full_name ~ " (" ~ s.username ~ ")" %}
+            {% endif %}
+          {% endfor %}
+          {{ current.name }}
+        </td>
+        {% if user.role == "admin" %}
+        <td>
+          {% set is_scored = interview.id in scored_interview_ids %}
+          <form
+            method="post"
+            action="{{ request.url_for('final_edit_interviewer', candidate_id=candidate.id, interview_id=interview.id).path }}"
+            style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;"
+          >
+            <select name="interviewer_id" required {% if is_scored %}disabled{% endif %} style="min-width:200px;">
+              {% for s in seniors %}
+              <option value="{{ s.id }}" {% if s.id == interview.interviewer_id %}selected{% endif %}>
+                {{ s.full_name }} ({{ s.username }})
+              </option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn-secondary btn-sm" {% if is_scored %}disabled{% endif %}>Update</button>
+            {% if is_scored %}
+            <span class="badge badge-muted"><i class="ti ti-lock"></i> Locked — already scored</span>
+            {% endif %}
+          </form>
+        </td>
+        {% endif %}
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="{% if user.role == 'admin' %}4{% else %}3{% endif %}">
+          <div class="empty-state">
+            <i class="ti ti-inbox"></i>
+            No interviews scheduled yet.
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+<!-- ================= FINAL ACTIONS (admin/HR) ================= -->
+{# Show final actions only for candidates who have passed interviews and when no interviews are pending/scheduled #}
+{% set ns = namespace(has_scheduled=false) %}
+{% for it in interviews %}
+  {% if it.status == 'scheduled' %}
+    {% set ns.has_scheduled = true %}
+  {% endif %}
+{% endfor %}
+
+{% if user.role == 'admin' and (candidate.status == 'interview_passed' or candidate.status == 'offer') and not ns.has_scheduled %}
+<div class="card">
+  <div class="card-header">
+    <h3>Final Actions</h3>
+  </div>
+  <div class="card-body" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+    {% if user.role in ['admin','hr'] %}
+      <button type="button" class="offer-btn" data-generate-url="{{ request.url_for('generate_offer_letter_route', candidate_id=candidate.id).path }}" data-role="">Generate Offer Letter</button>
+    {% endif %}
+
+    {% if user.role == 'admin' %}
+      {% if candidate.status == 'interview_passed' %}
+        <form method="post" action="{{ request.url_for('final_mark_offer', candidate_id=candidate.id).path }}?return_to=detail" style="display:inline-block;">
+          <button type="submit" class="btn-primary">Move to Offer</button>
+        </form>
+      {% elif candidate.status == 'offer' %}
+        <span class="badge badge-success">Offer Ready</span>
+      {% endif %}
+
+      <div style="display:flex; align-items:center;">
+        <button type="button" class="btn btn-danger reject-move-start" data-candidate-id="{{ candidate.id }}">Reject</button>
+        <div id="reject-confirm-{{ candidate.id }}" style="display:none; align-items:center; gap:8px; margin-left:10px;">
+          <span class="muted" style="font-size:13px;">Are you sure?</span>
+          <form method="post" action="{{ request.url_for('final_mark_reject', candidate_id=candidate.id).path }}" style="display:inline-flex; align-items:center; gap:8px; margin:0;">
+            <input type="hidden" name="return_to" value="detail" />
+            <button type="submit" class="btn btn-sm btn-danger">Yes</button>
+            <button type="button" class="btn btn-sm btn-link reject-move-cancel" data-candidate-id="{{ candidate.id }}">Cancel</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if user.role in ['hr','admin'] %}
+  {# compute github_url and submitted_at from candidate.submission fields #}
+  {% set github_url = None %}
+  {% if candidate.submission %}
+    {% for f in ['github_url','repo_url','repository_url','github_link','github_repo'] %}
+      {% set val = attribute(candidate.submission, f) %}
+      {% if val and not github_url %}
+        {% set github_url = val %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% set github_submitted_at = None %}
+  {% if candidate.submission %}
+    {% for f in ['submitted_at','created_at','uploaded_at'] %}
+      {% set val = attribute(candidate.submission, f) %}
+      {% if val and not github_submitted_at %}
+        {% set github_submitted_at = val %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  <!-- ================= GitHub Submission ================= -->
+  <div class="card">
+    <h3 class="card-title">
+      <i class="ti ti-brand-github"></i>
+      GitHub Submission
+    </h3>
+
+    {% if github_url %}
+      <div class="row">
+        <div class="flex-1">
+          <div class="mono" style="font-weight:600;">
+            {{ github_url|replace("https://github.com/","") }}
+          </div>
+          <div class="muted mt-1">
+            {% if github_submitted_at %}
+              Submitted {{ github_submitted_at.strftime("%b %-d, %Y %H:%M") }}
+            {% else %}
+              Submission date unavailable
+            {% endif %}
+          </div>
+        </div>
+        <a href="{{ github_url }}" target="_blank" class="btn btn-dark btn-sm">
+          <i class="ti ti-external-link"></i>
+          View Repository
+        </a>
+      </div>
+    {% else %}
+      <p class="muted">No GitHub submission available.</p>
+    {% endif %}
+  </div>
+
+  <!-- ================= Reviewer Scores ================= -->
+  <div class="card">
+    <div class="row mb-2">
+      <h3 class="card-title" style="margin:0;">
+        <i class="ti ti-clipboard-check"></i>
+        Reviewer Scores
+      </h3>
+      {# compute average weighted_total from submission.reviews #}
+      {% set _sum = 0 %}
+      {% set _count = 0 %}
+      {% if candidate.submission and candidate.submission.reviews %}
+        {% for r in candidate.submission.reviews %}
+          {% if r.weighted_total is not none %}
+            {% set _sum = _sum + r.weighted_total %}
+            {% set _count = _count + 1 %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      {% if _count > 0 %}
+        {% set avg_weighted_total = (_sum / _count) | round(1) %}
+        <span class="badge badge-info right">Average {{ avg_weighted_total }}</span>
+      {% else %}
+        {% set avg_weighted_total = none %}
+      {% endif %}
+    </div>
+
+    {% if candidate.submission and candidate.submission.reviews %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Reviewer</th>
+              <th>Creativity</th>
+              <th>Technical</th>
+              <th>Feasibility</th>
+              <th>Problem Fit</th>
+              <th>Total</th>
+              <th>Comments</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for review in candidate.submission.reviews|sort(attribute='created_at') %}
+              <tr>
+                <td class="mono">{{ review.reviewer_id or "-" }}</td>
+                <td>{{ review.creativity if review.creativity is not none else "-" }}</td>
+                <td>{{ review.technical_execution if review.technical_execution is not none else "-" }}</td>
+                <td>{{ review.feasibility if review.feasibility is not none else "-" }}</td>
+                <td>{{ review.problem_fit_demo if review.problem_fit_demo is not none else "-" }}</td>
+                <td><strong>{% if review.weighted_total is not none %}{{ "%.1f"|format(review.weighted_total) }}{% else %}-{% endif %}</strong></td>
+                <td>{{ review.comments or "-" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No reviewer scores submitted yet.</p>
+    {% endif %}
+  </div>
+{% endif %}
+
+{% include "timeline.html" %}
+
+<!-- Offer Letter Modal (shared) -->
+<div class="offer-letter-overlay" id="offerModal"
+  data-generate-url-template="{{ request.url_for('generate_offer_letter_route', candidate_id=999999).path }}">
+  <div class="modal-box offer-letter-modal">
+
+    <div class="modal-header">
+      <h3>Offer Letter</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="letter-wrap">
+
+        <div class="letter-company">
+          <div class="letter-logo">CT</div>
+          <div>
+            <div class="letter-company-name">Claysys Technologies</div>
+            <div class="letter-company-tagline">Innovation in Technology</div>
+          </div>
+        </div>
+
+        <div class="letter-date" id="letterDate"></div>
+
+        <div id="copyContent">
+          <div id="letterLoading" style="text-align:center; padding:30px 0;">
+            <div class="spinner"></div>
+            <p style="margin-top:12px; color:#666;">Generating offer letter summary…</p>
+          </div>
+          <div id="letterGeneratedText" class="generated-letter" style="display:none;"></div>
+          <p id="letterError" style="display:none; color:#b91c1c;"></p>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <span class="copied-msg" id="copiedMsg">✅ Copied to clipboard!</span>
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-copy" onclick="copyLetter()">📋 Copy Letter</button>
+    </div>
+
+  </div>
+</div>
+
+{% block scripts %}
+<script src="{{ root_path }}/static/js/offer_letter_modal.js"></script>
+<script src="{{ root_path }}/static/js/final_candidates.js"></script>
+{% endblock %}
+
+{% endblock %}

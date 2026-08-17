@@ -1,0 +1,145 @@
+{
+  "module": "aiml_engineer",
+  "title": "AI/ML Engineer Interview Assessment",
+  "sections": [
+    {
+      "id": "interview_details",
+      "title": "Interview Details",
+      "fields": [
+        { "id": "interviewer_email", "type": "email", "label": "Interviewer's email", "required": true, "placeholder": "Please enter an email" },
+        { "id": "interview_date", "type": "datetime-local", "label": "Interview Date", "required": true },
+        { "id": "candidate_name", "type": "text", "label": "Candidate Name", "required": true },
+        { "id": "role_assessed", "type": "select", "label": "Role Candidate is Assessed for", "required": true,
+          "options": [
+            { "value": "", "label": "-- Select --" },
+            { "value": "AI/ML Engineer (L1)", "label": "AI/ML Engineer (L1)" },
+            { "value": "AI/ML Engineer (L3)", "label": "AI/ML Engineer (L3)" },
+            { "value": "Other", "label": "Other" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "projects",
+      "title": "Projects",
+      "fields": [
+        { "id": "q1", "type": "rating", "label": "Approach to ML project", "required": true, "scored": true, "max": 5 },
+        { "id": "num_good_projects", "type": "number", "label": "Number of Good Projects", "required": false, "scored": true, "cap": 5, "min": 0, "max_input": 99, "note": "scored — added directly, capped at 5pts", "placeholder": "Enter a number" }
+      ]
+    },
+    {
+      "id": "core_ml",
+      "title": "Core ML Fundamentals",
+      "fields": [
+        { "id": "q2", "type": "rating", "label": "Understanding of ML concepts", "required": true, "scored": true, "max": 5 },
+        { "id": "ml_algo_basic", "type": "rating", "label": "Knowledge of ML algorithms &amp; when to apply them — Basic", "required": true, "scored": true, "max": 5 },
+        { "id": "ml_algo_advanced", "type": "rating", "label": "Knowledge of ML algorithms &amp; when to apply them — Advanced", "required": true, "scored": true, "max": 5 }
+      ]
+    },
+    {
+      "id": "data_handling",
+      "title": "Data Handling",
+      "fields": [
+        { "id": "q3", "type": "rating", "label": "Data preprocessing &amp; feature engineering", "required": true, "scored": true, "max": 5 },
+        { "id": "q4", "type": "rating", "label": "Working with real-world data (missing values, imbalanced datasets, scaling)", "required": true, "scored": true, "max": 5 },
+        { "id": "q5", "type": "rating", "label": "Handling Unstructured data (PDFs, HTML, transcripts, emails)", "required": true, "scored": true, "max": 5 }
+      ]
+    },
+    {
+      "id": "deep_learning",
+      "title": "Deep Learning",
+      "fields": [
+        { "id": "q6", "type": "rating", "label": "Understanding of neural networks, CNN, RNN, transformers", "required": true, "scored": true, "max": 5 },
+        { "id": "frameworks", "type": "rating_group", "label": "Familiarity with frameworks", "note": "scored — each rated 1–5", "required": true, "scored": true, "max": 5,
+          "subfields": [
+            { "id": "fw_tensorflow", "label": "TensorFlow" },
+            { "id": "fw_pytorch", "label": "PyTorch" },
+            { "id": "fw_langchain", "label": "Langchain" },
+            { "id": "fw_llamaindex", "label": "LlamaIndex" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gen_ai",
+      "title": "Gen AI",
+      "fields": [
+        { "id": "q7", "type": "rating", "label": "Prompt Design (Zero-shot, few-shot, role prompting, structured prompts, System prompts, grounding, citations)", "required": true, "scored": true, "max": 5 },
+        { "id": "q8", "type": "rating", "label": "RAG (Fundamentals, Embedding &amp; Vector search, Pipeline design)", "required": true, "scored": true, "max": 5 }
+      ]
+    },
+    {
+      "id": "evaluation",
+      "title": "Evaluation",
+      "fields": [
+        { "id": "q9", "type": "rating", "label": "Metrics: Defaults to accuracy blindly (0) → Aligns with problem", "required": true, "scored": true, "max": 5 },
+        { "id": "q10", "type": "rating", "label": "Validation: Mentions only train-test split (0) → Uses multiple techniques with rationale", "required": true, "scored": true, "max": 5 },
+        { "id": "q11", "type": "rating", "label": "Interpretation: Reports numbers without context (0) → Draws actionable insights", "required": true, "scored": true, "max": 5 },
+        { "id": "q12", "type": "rating", "label": "Optimization: Stops at initial evaluation (0) → Suggests iterations like tuning or ensembling", "required": true, "scored": true, "max": 5 }
+      ]
+    },
+    {
+      "id": "programming",
+      "title": "Programming &amp; Coding Skills",
+      "fields": [
+        { "id": "q13", "type": "rating", "label": "Python coding proficiency (data structures, functions, error handling, readability)", "required": true, "scored": true, "max": 5 },
+        { "id": "q14", "type": "rating", "label": "Ability to implement ML/DL models from scratch &amp; using libraries", "required": true, "scored": true, "max": 5 }
+      ]
+    },
+    {
+      "id": "mathematics",
+      "title": "Mathematics &amp; Statistics",
+      "fields": [
+        { "id": "q15", "type": "rating", "label": "Probability, distributions, hypothesis testing", "required": true, "scored": true, "max": 5 },
+        { "id": "q16", "type": "rating", "label": "Linear algebra &amp; optimization (matrices, gradients, cost functions)", "required": true, "scored": true, "max": 5 }
+      ]
+    },
+    {
+      "id": "practical_ml",
+      "title": "Practical ML &amp; Deployment",
+      "fields": [
+        { "id": "q17", "type": "rating", "label": "Understanding of model evaluation metrics", "required": true, "scored": true, "max": 5 },
+        { "id": "q18", "type": "rating", "label": "Awareness of MLOps concepts (model deployment, monitoring, pipelines)", "required": true, "scored": true, "max": 5 },
+        { "id": "q19", "type": "rating", "label": "Version control, reproducibility, collaboration tools (Git, Docker, CI/CD)", "required": true, "scored": true, "max": 5 }
+      ]
+    },
+    {
+      "id": "problem_solving",
+      "title": "Problem-Solving",
+      "fields": [
+        { "id": "q20", "type": "rating", "label": "Problem breakdown: Can they decompose a vague problem into smaller steps?", "required": true, "scored": true, "max": 5 },
+        { "id": "q21", "type": "rating", "label": "Algorithmic thinking: Choosing right approach based on constraints", "required": true, "scored": true, "max": 5 },
+        { "id": "q22", "type": "rating", "label": "Hypothesis testing &amp; iteration: Can they design experiments, interpret results, and refine?", "required": true, "scored": true, "max": 5 }
+      ]
+    },
+    {
+      "id": "communication",
+      "title": "Communication &amp; Soft Skills",
+      "fields": [
+        { "id": "q23", "type": "rating", "label": "Ability to explain ML concepts simply", "required": true, "scored": true, "max": 5 },
+        { "id": "q24", "type": "rating", "label": "Problem-solving discussion (clarifying assumptions, structured reasoning)", "required": true, "scored": true, "max": 5 },
+        { "id": "attitude", "type": "text", "label": "Attitude to Problem solving", "required": false, "placeholder": "Enter your answer" }
+      ]
+    },
+    {
+      "id": "overall_remarks",
+      "title": "Overall Remarks",
+      "fields": [
+        { "id": "structured_reasoning", "type": "slider", "label": "Structured reasoning &amp; assumption clarification", "note": "scored — out of 10", "scored": true, "min": 0, "max": 10, "step": 1, "labels": ["Not structured", "Extremely Structured detail oriented"] },
+        { "id": "practical_exposure", "type": "slider", "label": "Academic/Project exposure in relevance to ML/AI or Practicality of prior work", "note": "scored — out of 10", "scored": true, "min": 0, "max": 10, "step": 1, "labels": ["No prior practical exposure", "A lot of practical exposure"] },
+        { "id": "confidence_curiosity", "type": "slider", "label": "Overall confidence, curiosity, and learning mindset", "note": "scored — out of 10", "scored": true, "min": 0, "max": 10, "step": 1, "labels": ["Low", "High"] },
+        { "id": "notes", "type": "textarea", "label": "Additional Remarks", "required": false, "rows": 3, "placeholder": "Enter your answer" }
+      ]
+    }
+  ],
+  "recommendation": {
+    "label": "Overall Recommendation",
+    "required": true,
+    "options": [
+      { "value": "not_recommended", "label": "Not Recommended", "desc": "Candidate shows significant gaps in required skills, experience, or competencies and does not meet the expectations for the role." },
+      { "value": "below_expectations", "label": "Below Expectations (Trainable)", "desc": "Candidate demonstrates some gaps but has potential to improve with training and guidance." },
+      { "value": "recommended", "label": "Recommended", "desc": "Candidate meets the core requirements for the role and is a suitable fit." },
+      { "value": "highly_recommended", "label": "Highly Recommended", "desc": "Candidate exceeds the requirements and demonstrates exceptional skills, experience, and potential value to the organization." }
+    ]
+  }
+}

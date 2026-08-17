@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="max-width:700px; margin:auto;">
+
+  <!-- Header -->
+  
+  <!-- ================= DEADLINE BLOCK ================= -->
+  {% if deadline_passed %}
+
+  <div style="text-align:center; padding:50px 20px;">
+
+    <!-- Icon -->
+    <div style="
+      width:80px;
+      height:80px;
+      margin:auto;
+      background:#fde8e8;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    ">
+      <span style="font-size:36px;">⏰</span>
+    </div>
+
+    <!-- Title -->
+    <h2 style="margin-top:20px; color:#111;">
+      Submission Deadline Has Passed
+    </h2>
+
+    <p style="color:#6b7280;">
+      📎 Claysys AI Hackathon 2026
+    </p>
+
+    <!-- Warning Box -->
+    <div style="
+      background:#fff7e6;
+      border:1px solid #facc15;
+      padding:15px;
+      border-radius:8px;
+      margin:20px 0;
+      text-align:left;
+    ">
+      <b style="color:#92400e;">⚠️ Submissions are now closed</b>
+      <p style="margin-top:5px; color:#78350f;">
+        The submission deadline has passed. We are no longer accepting new project submissions for this hackathon.
+      </p>
+    </div>
+
+    <!-- Info -->
+    <p style="color:#4b5563;">
+      Thank you for your interest in the Claysys AI Hackathon 2026.
+      We received many outstanding submissions and our review process is currently underway.
+    </p>
+
+    <!-- Info Box -->
+    <div style="
+      background:#e0f2fe;
+      border:1px solid #60a5fa;
+      padding:12px;
+      border-radius:8px;
+      margin-top:20px;
+      color:#1e3a8a;
+      font-size:14px;
+    ">
+      <b>Already submitted?</b> Results will be announced soon. Selected candidates will be contacted via email.
+    </div>
+   
+  </div>
+
+  <!-- ================= FORM BLOCK ================= -->
+  {% else %}
+<h2 style="text-align:center; color:#4f46e5;">🚀 Claysys AI Hackathon 2026</h2>
+  <p style="text-align:center; color:gray;">Submit your innovative AI project and showcase your skills</p>
+
+  <form
+    method="post"
+    action="{{ request.url_for('submit_hackathon_route') }}"
+    enctype="multipart/form-data" style="border:1px solid #ddd; padding:20px; border-radius:10px; background:#fafafa;">
+
+    <h3>Project Submission Form</h3>
+    <p style="font-size:14px; color:gray;">Fill in all required fields to submit your hackathon project</p>
+
+    <!-- Candidate Info -->
+    <h4>Candidate Information</h4>
+
+    <div style="display:flex; gap:15px; margin-bottom:10px;">
+      <div style="flex:1;">
+        <label>Full Name <span style="color:red;">*</span></label>
+        <input type="text" name="full_name" required placeholder="John Doe"
+               style="width:95%; padding:8px;">
+      </div>
+
+      <div style="flex:1;">
+        <label>Email <span style="color:red;">*</span></label>
+        <input type="email" name="email" required placeholder="john.doe@example.com"
+               style="width:95%; padding:8px;">
+      </div>
+    </div>
+
+    <div style="display:flex; gap:15px; margin-bottom:10px;">
+      <div style="flex:1;">
+        <label>Phone Number <span style="color:red;">*</span></label>
+        <input type="text" name="phone" required placeholder="+91123456789"
+               style="width:95%; padding:8px;">
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- Project Details -->
+    <h4>Project Details</h4>
+
+    <label>Project Title <span style="color:red;">*</span></label>
+    <input type="text" name="project_title" required
+           placeholder="AI Powered Customer Support Assistant"
+           style="width:97%; padding:8px; margin-bottom:10px;">
+
+    <label>Project Description</label>
+    <textarea name="description" rows="3"
+              placeholder="Describe your project..."
+              style="width:97%; padding:8px; margin-bottom:10px;"></textarea>
+
+    <label>Technology Stack</label>
+    <input type="text" name="tech_stack"
+           placeholder="React, Python, OpenAI API"
+           style="width:97%; padding:8px; margin-bottom:10px;">
+
+    <hr>
+
+    <!-- Links -->
+    <h4>Project Links</h4>
+
+    <label>GitHub Repository URL<span style="color:red;">*</span></label>
+    <input type="text" name="github_link" required
+           placeholder="https://github.com/username/project"
+           style="width:97%; padding:8px; margin-bottom:10px;">
+
+    <label>YouTube Video Demo URL <span style="color:red;">*</span></label>
+    <input type="text" name="video_link" required
+           placeholder="https://youtube.com/watch?v=..."
+           style="width:97%; padding:8px; margin-bottom:15px;">
+
+    <!-- Submit -->
+    <div style="text-align:center;">
+      <button type="submit"
+        style="width:95%; padding:12px; background:#1f2937; color:white; border:none; border-radius:6px;">
+        Submit Project
+      </button>
+    </div>
+
+  </form>
+
+  {% endif %}
+
+  <!-- Alert -->
+  {% if message %}
+  <div id="csMessage" data-message="{{ message }}" hidden></div>
+  <script src="{{ root_path }}/static/js/candidate_submit.js"></script>
+  {% endif %}
+
+</div>
+
+{% endblock %}

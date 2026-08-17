@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- ================= HEADER ================= -->
+<div class="welcome-header" style="margin-bottom:20px;">
+  <div class="welcome-left">
+    <div class="avatar-badge">{{ candidate.name[0]|upper }}</div>
+    <div class="welcome-text">
+      <p class="welcome-name" style="margin:0;">{{ candidate.name }}</p>
+      <span class="welcome-role">{{ candidate.email }} &nbsp;·&nbsp; {{ candidate.phone }}</span>
+    </div>
+  </div>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <span class="badge
+      {% if candidate.status in ['accepted','passed_stage4','interview_passed'] %}badge-success
+      {% elif candidate.status in ['rejected','failed_stage4','interview_failed'] %}badge-danger
+      {% elif candidate.status in ['new','parsed'] %}badge-muted
+      {% else %}badge-info{% endif %}">
+      {{ candidate.status|replace('_',' ')|title }}
+    </span>
+    {% if candidate.flow %}
+    <span class="role-tag">
+      <i class="ti ti-route"></i>
+      {{ candidate.flow|replace('_',' ')|title }}
+    </span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ================= DETAILS CARD ================= -->
+<div class="card">
+  <div class="card-header">
+    <h3>Candidate Details</h3>
+  </div>
+  <div class="detail-list">
+    <div class="detail-row">
+      <label>Skills</label>
+      <div class="detail-value">
+        {% for s in candidate.skills.split(',') %}
+          <span class="badge badge-muted" style="margin-right:4px;">{{ s.strip() }}</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if candidate.screening %}
+    <div class="detail-row">
+      <label>Fit Score</label>
+      <div class="detail-value">
+        <span class="badge badge-info">{{ candidate.screening.fit_tag }} · {{ candidate.screening.fit_score }}</span>
+      </div>
+    </div>
+    <div class="detail-row">
+      <label>Recommended Problem</label>
+      <div class="detail-value">{{ candidate.screening.recommended_problem }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if user.role == "hr" %}
+
+  <!-- STATUS: new or parsed — show decision form -->
+  {% if candidate.status == 'new' or candidate.status == 'parsed' %}
+  <div class="card">
+    <div class="card-header">
+      <h3>Hiring Decision</h3>
+      <p class="page-subtitle" style="margin-top:2px;">Accept into a flow or reject this candidate.</p>
+    </div>
+    <form method="post" action="{{ request.url_for('hr_decision', candidate_id=candidate.id).path }}">
+      <div class="radio-row">
+        <label>
+          <input type="radio" name="decision" value="accept" required id="accept1"
+            onclick="document.getElementById('flow_section_1').style.display='block'" /> Accept
+        </label>
+        <label>
+          <input type="radio" name="decision" value="reject" required
+            onclick="document.getElementById('flow_section_1').style.display='none'" /> Reject
+        </label>
+      </div>
+
+      <div id="flow_section_1" style="display:none;" class="mb-2">
+        <label class="form-label">Select Flow</label>
+        <select name="flow" class="field-wide">
+          <option value="ai_hackathon_flow">AI Hackathon Flow</option>
+          <option value="ai_interview_flow">AI Interview Flow</option>
+        </select>
+      </div>
+
+      <label class="form-label">Notes</label>
+      <textarea name="notes" rows="2" class="field-wide" placeholder="Optional context for this decision"></textarea>
+
+      <div class="mt-3">
+        <button type="submit" class="btn-primary">Submit Decision</button>
+      </div>
+
+<!-- ================= FINAL ACTIONS (moved from Final tab) ================= -->
+{# Show final actions only for candidates who have passed interviews and when no interviews are pending/scheduled #}
+{% set ns = namespace(has_scheduled=false) %}
+{% for it in interviews %}
+  {% if it.status == 'scheduled' %}
+    {% set ns.has_scheduled = true %}
+  {% endif %}
+{% endfor %}
+
+{% if user.role == 'admin' and (candidate.status == 'interview_passed' or candidate.status == 'offer') and not ns.has_scheduled %}
+<div class="card">
+  <div class="card-header">
+    <h3>Final Actions</h3>
+  </div>
+  <div class="card-body" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+    {% if user.role in ['admin','hr'] %}
+      <button type="button" class="offer-btn" data-generate-url="{{ request.url_for('generate_offer_letter_route', candidate_id=candidate.id).path }}" data-role="">Generate Offer Letter</button>
+    {% endif %}
+
+    {% if user.role == 'admin' %}
+      {% if candidate.status == 'interview_passed' %}
+        <form method="post" action="{{ request.url_for('final_mark_offer', candidate_id=candidate.id).path }}?return_to=detail" style="display:inline-block;">
+          <button type="submit" class="btn-primary">Move to Offer</button>
+        </form>
+      {% elif candidate.status == 'offer' %}
+        <span class="badge badge-success">Offer Ready</span>
+      {% endif %}
+
+      <div style="display:inline-block;">
+        <button type="button" class="btn btn-danger reject-move-start" data-candidate-id="{{ candidate.id }}">Reject</button>
+        <div id="reject-confirm-{{ candidate.id }}" style="display:none; margin-top:8px;">
+          <form method="post" action="{{ request.url_for('final_mark_reject', candidate_id=candidate.id).path }}">
+            <input type="hidden" name="return_to" value="detail" />
+            <button type="submit" class="btn btn-sm btn-danger">Yes</button>
+            <button type="button" class="btn btn-sm btn-link reject-move-cancel" data-candidate-id="{{ candidate.id }}">Cancel</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- STATUS: accepted — show Edit button + email button in same card -->
+  {% if candidate.status == 'accepted' %}
+  <div class="card">
+    <div class="card-header-actions" style="justify-content:space-between; display:flex;">
+      <h3 style="margin:0;">Decision</h3>
+      <button type="button" id="editBtn" class="btn-secondary btn-sm">
+        ✏️ Edit Decision
+      </button>
+    </div>
+
+    <div id="editDecisionForm" style="display:none; margin-top:15px;">
+      <form method="post" action="{{ request.url_for('hr_decision', candidate_id=candidate.id).path }}">
+        <div class="radio-row">
+          <label>
+            <input type="radio" name="decision" value="accept" required checked
+              onclick="document.getElementById('flow_section_2').style.display='block'" /> Accept
+          </label>
+          <label>
+            <input type="radio" name="decision" value="reject" required
+              onclick="document.getElementById('flow_section_2').style.display='none'" /> Reject
+          </label>
+        </div>
+        <div id="flow_section_2" style="display:block;" class="mb-2">
+          <label class="form-label">Select Flow</label>
+          <select name="flow" class="field-wide">
+            <option value="ai_hackathon_flow" {% if candidate.flow == 'ai_hackathon_flow' %}selected{% endif %}>AI Hackathon Flow</option>
+            <option value="ai_interview_flow" {% if candidate.flow == 'ai_interview_flow' %}selected{% endif %}>AI Interview Flow</option>
+          </select>
+        </div>
+        <label class="form-label">Notes</label>
+        <textarea name="notes" rows="2" class="field-wide"></textarea>
+        <div class="mt-3">
+          <button type="submit" class="btn-primary">Submit Decision</button>
+        </div>
+      </form>
+    </div>
+
+    <hr>
+
+    <button type="button" id="openEmailBtn" class="btn-dark">
+      📧 Send Hackathon Email
+    </button>
+  </div>
+  {% endif %}
+
+  <!-- STATUS: rejected — only Edit button, no email -->
+  {% if candidate.status == 'rejected' %}
+  <div class="card">
+    <div class="card-header-actions" style="justify-content:space-between; display:flex;">
+      <h3 style="margin:0;">Decision</h3>
+      <button type="button" id="editBtn" class="btn-secondary btn-sm">
+        ✏️ Edit Decision
+      </button>
+    </div>
+
+    <div id="editDecisionForm" style="display:none; margin-top:15px;">
+      <form method="post" action="{{ request.url_for('hr_decision', candidate_id=candidate.id).path }}">
+        <div class="radio-row">
+          <label>
+            <input type="radio" name="decision" value="accept" required
+              onclick="document.getElementById('flow_section_3').style.display='block'" /> Accept
+          </label>
+          <label>
+            <input type="radio" name="decision" value="reject" required checked
+              onclick="document.getElementById('flow_section_3').style.display='none'" /> Reject
+          </label>
+        </div>
+        <div id="flow_section_3" style="display:none;" class="mb-2">
+          <label class="form-label">Select Flow</label>
+          <select name="flow" class="field-wide">
+            <option value="ai_hackathon_flow">AI Hackathon Flow</option>
+            <option value="ai_interview_flow">AI Interview Flow</option>
+          </select>
+        </div>
+        <label class="form-label">Notes</label>
+        <textarea name="notes" rows="2" class="field-wide"></textarea>
+        <div class="mt-3">
+          <button type="submit" class="btn-primary">Submit Decision</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+{% if user.role in ['hr','admin'] %}
+  {% set github_url = None %}
+  {% if candidate.submission %}
+    {% for f in ['github_url','repo_url','repository_url','github_link','github_repo'] %}
+      {% set val = attribute(candidate.submission, f) %}
+      {% if val and not github_url %}
+        {% set github_url = val %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% set github_submitted_at = None %}
+  {% if candidate.submission %}
+    {% for f in ['submitted_at','created_at','uploaded_at'] %}
+      {% set val = attribute(candidate.submission, f) %}
+      {% if val and not github_submitted_at %}
+        {% set github_submitted_at = val %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  <div class="card">
+    <h3 class="card-title">
+      <i class="ti ti-brand-github"></i>
+      GitHub Submission
+    </h3>
+
+    {% if github_url %}
+      <div class="row">
+        <div class="flex-1">
+          <div class="mono" style="font-weight:600;">{{ github_url|replace('https://github.com/','') }}</div>
+          <div class="muted mt-1">
+            {% if github_submitted_at %}
+              Submitted {{ github_submitted_at.strftime('%b %-d, %Y %H:%M') }}
+            {% else %}
+              Submission date unavailable
+            {% endif %}
+          </div>
+        </div>
+        <a href="{{ github_url }}" target="_blank" class="btn btn-dark btn-sm">
+          <i class="ti ti-external-link"></i> View Repository
+        </a>
+      </div>
+    {% else %}
+      <p class="muted">No GitHub submission available.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="row mb-2">
+      <h3 class="card-title" style="margin:0;"><i class="ti ti-clipboard-check"></i> Reviewer Scores</h3>
+      {% set _sum = 0 %}{% set _count = 0 %}
+      {% if candidate.submission and candidate.submission.reviews %}
+        {% for r in candidate.submission.reviews %}
+          {% if r.weighted_total is not none %}
+            {% set _sum = _sum + r.weighted_total %}
+            {% set _count = _count + 1 %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      {% if _count > 0 %}
+        {% set avg_weighted_total = (_sum / _count) | round(1) %}
+        <span class="badge badge-info right">Average {{ avg_weighted_total }}</span>
+      {% else %}
+        {% set avg_weighted_total = none %}
+      {% endif %}
+    </div>
+
+    {% if candidate.submission and candidate.submission.reviews %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr><th>Reviewer</th><th>Creativity</th><th>Technical</th><th>Feasibility</th><th>Problem Fit</th><th>Total</th><th>Comments</th></tr>
+          </thead>
+          <tbody>
+            {% for review in candidate.submission.reviews|sort(attribute='created_at') %}
+              <tr>
+                <td class="mono">{{ review.reviewer_id or '-' }}</td>
+                <td>{{ review.creativity if review.creativity is not none else '-' }}</td>
+                <td>{{ review.technical_execution if review.technical_execution is not none else '-' }}</td>
+                <td>{{ review.feasibility if review.feasibility is not none else '-' }}</td>
+                <td>{{ review.problem_fit_demo if review.problem_fit_demo is not none else '-' }}</td>
+                <td><strong>{% if review.weighted_total is not none %}{{ "%.1f"|format(review.weighted_total) }}{% else %}-{% endif %}</strong></td>
+                <td>{{ review.comments or '-' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No reviewer scores submitted yet.</p>
+    {% endif %}
+  </div>
+
+{% include "timeline.html" %}
+{% endif %}
+{% endif %}
+<!-- ================= EMAIL POPUP MODAL ================= -->
+<div id="emailModal" class="modal-overlay" hidden>
+    </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="content">
+
+    <div class="row mb-3">
+        <div class="flex-1">
+            <h1 class="page-title">Offer Center</h1>
+            <div class="page-subtitle">
+                Admin-only — generate and dispatch offer letters
+            </div>
+        </div>
+
+        {% if user.role == "admin" %}
+        <span class="badge badge-warning">
+            ADMIN ACTION REQUIRED
+        </span>
+        {% endif %}
+    </div>
+
+    <div id="toastMessage" class="toast" data-message="{{ message }}" data-error="{{ error }}" aria-live="polite" aria-atomic="true">
+        <div id="toastMessageText"></div>
+    </div>
+
+    <div class="table-wrap">
+
+        <table class="table">
+
+            <thead>
+                <tr>
+                    <th>Candidate</th>
+                    <th>Department</th>
+                    <th>Flow</th>
+                    <th>Final Score</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+            {% for c in candidates %}
+            <tr>
+
+                <td>
+                    <div class="candidate-cell">
+                        <div class="avatar-badge" style="width:48px;height:48px;font-size:15px;">
+                            {{ c.name[:2]|upper }}
+                        </div>
+
+                        <div>
+                            <div class="candidate-link-name">
+                                {{ c.name }}
+                            </div>
+
+                            <div class="muted">
+                                {{ c.interviews[0].scores[0].role_assessed if c.interviews and c.interviews[0].scores else "Candidate" }}
+                            </div>
+                        </div>
+                    </div>
+                </td>
+
+                <td>{{ c.department or "-" }}</td>
+                <td>{{ c.flow or "-" }}</td>
+
+                <td>
+                    {% if c.interviews and c.interviews[0].scores %}
+                        <span style="font-size:26px;font-weight:700;color:#4F46E5;">
+                            {{ "%.1f"|format(c.interviews[0].scores[0].score) }}
+                        </span>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+
+                <td>
+                    <div class="row right" style="gap:8px; align-items:center;">
+                        <a href="{{ request.url_for('final_candidate_summary', candidate_id=c.id).path }}" class="btn-link">Expand</a>
+
+                        {% if user.role=="admin" and c.status in ["interview_passed", "offer"] %}
+                        <button class="btn-offer offer-btn"
+                            data-generate-url="{{ request.url_for('generate_offer_letter_route', candidate_id=c.id).path }}"
+                            data-role="{{ c.interviews[0].scores[0].role_assessed if c.interviews and c.interviews[0].scores else '' }}">
+                            Generate Offer Letter
+                        </button>
+                        {% endif %}
+
+                        {% if user.role=="admin" and c.status=="interview_passed" %}
+                        <div class="offer-move-wrapper">
+                            <button type="button" class="btn-secondary offer-move-start" data-candidate-id="{{ c.id }}">
+                                Move to Offer
+                            </button>
+                            <div class="offer-move-confirm" id="offer-confirm-{{ c.id }}" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:2200; width:280px;">
+                                <p class="offer-move-text">Move this candidate to Offer?</p>
+                                <div class="offer-move-actions">
+                                    <form method="post" action="{{ request.url_for('final_mark_offer', candidate_id=c.id).path }}">
+                                        <button type="submit" class="btn btn-sm btn-secondary">Yes</button>
+                                    </form>
+                                    <button type="button" class="btn btn-sm btn-link offer-move-cancel" data-candidate-id="{{ c.id }}">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                            <div class="offer-move-wrapper" style="margin-left:8px;">
+                                <button type="button" class="btn-danger reject-move-start" data-candidate-id="{{ c.id }}">Reject</button>
+                                <div class="offer-move-confirm" id="reject-confirm-{{ c.id }}">
+                                    <p class="offer-move-text">Reject this candidate and end workflow?</p>
+                                    <div class="offer-move-actions">
+                                        <form method="post" action="{{ request.url_for('final_mark_reject', candidate_id=c.id).path }}">
+                                            <button type="submit" class="btn btn-sm btn-danger">Yes</button>
+                                        </form>
+                                        <button type="button" class="btn btn-sm btn-link reject-move-cancel" data-candidate-id="{{ c.id }}">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% elif user.role=="admin" and c.status=="offer" %}
+                        <span class="badge badge-success">Offer Ready</span>
+                        <div class="offer-move-wrapper" style="display:inline-block; margin-left:8px;">
+                            <button type="button" class="btn-danger reject-move-start" data-candidate-id="{{ c.id }}">Reject</button>
+                            <div class="offer-move-confirm" id="reject-confirm-{{ c.id }}">
+                                <p class="offer-move-text">Reject this candidate and end workflow?</p>
+                                <div class="offer-move-actions">
+                                    <form method="post" action="{{ request.url_for('final_mark_reject', candidate_id=c.id).path }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">Yes</button>
+                                    </form>
+                                    <button type="button" class="btn btn-sm btn-link reject-move-cancel" data-candidate-id="{{ c.id }}">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </td>
+
+            </tr>
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<!-- Offer Letter Modal -->
+<div class="offer-letter-overlay" id="offerModal"
+    data-generate-url-template="{{ request.url_for('generate_offer_letter_route', candidate_id=999999).path }}">
+    <div class="modal-box offer-letter-modal">
+
+        <div class="modal-header">
+            <h3>Offer Letter</h3>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="letter-wrap">
+
+                <div class="letter-company">
+                    <div class="letter-logo">CT</div>
+                    <div>
+                        <div class="letter-company-name">Claysys Technologies</div>
+                        <div class="letter-company-tagline">Innovation in Technology</div>
+                    </div>
+                </div>
+
+                <div class="letter-date" id="letterDate"></div>
+
+                <div id="copyContent">
+                    <div id="letterLoading" style="text-align:center; padding:30px 0;">
+                        <div class="spinner"></div>
+                        <p style="margin-top:12px; color:#666;">Generating offer letter summary…</p>
+                    </div>
+                    <div id="letterGeneratedText" class="generated-letter" style="display:none;"></div>
+                    <p id="letterError" style="display:none; color:#b91c1c;"></p>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <span class="copied-msg" id="copiedMsg">✅ Copied to clipboard!</span>
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-copy" onclick="copyLetter()">📋 Copy Letter</button>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ root_path }}/static/js/offer_letter_modal.js"></script>
+<script src="{{ root_path }}/static/js/final_candidates.js"></script>
+{% endblock %}

@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block page_title %}
+
+{% endblock %}
+
+{% block content %}
+
+<!-- =========================
+     Department Cards
+========================== -->
+<div class="dashboard-title">
+        <h1>Select a department</h1>
+        <span class="eyebrow">Choose a department to view its hiring pipeline.</span>
+    </div>
+<div class="department-selector">
+
+    {% for dept in departments %}
+
+        <a
+            href="?department={{ dept.id | urlencode }}"
+            class="dept-card {% if selected_department == dept.id %}active{% endif %}"
+        >
+            <div class="dept-top">
+                <div class="dept-icon {% if dept.id == 'AI / ML' %}purple{% endif %}">
+                    {% if dept.id == "AI / ML" %}
+                        <i class="ti ti-brain"></i>
+                    {% elif dept.id == "Developer" %}
+                        <i class="ti ti-code"></i>
+                    {% elif dept.id == "QA / Tester" %}
+                        <i class="ti ti-bug"></i>
+                    {% elif dept.id == "Project Manager" %}
+                        <i class="ti ti-briefcase"></i>
+                    {% elif dept.id == "Finance" %}
+                        <i class="ti ti-building-bank"></i>
+                    {% endif %}
+                </div>
+
+                <span class="dept-count">
+                    {{ dept_counts[dept.id] }}
+                </span>
+            </div>
+
+            <h3>{{ dept.label }}</h3>
+
+            <p>
+                {% if dept.id == "AI / ML" %}
+                    Telephonic → Hackathon → Interview → Offer
+                {% else %}
+                    Telephonic → Interview → Offer
+                {% endif %}
+            </p>
+        </a>
+
+    {% endfor %}
+
+</div>
+
+<!-- =========================
+        Pipeline Stats
+========================== -->
+
+<div class="pipeline-stats">
+
+    <div class="pipeline-card">
+
+        <div class="pipeline-icon">
+            <i class="ti ti-phone"></i>
+        </div>
+
+        <div class="pipeline-content">
+
+            <div class="pipeline-number">
+                {{ telephonic_count|default(0) }}
+            </div>
+
+            <div class="pipeline-title">
+                In Telephonic
+            </div>
+
+            <div class="pipeline-subtitle">
+                HR Queue
+            </div>
+
+        </div>
+
+    </div>
+
+    {% if selected_department == "AI / ML" %}
+
+    <div class="pipeline-card">
+
+        <div class="pipeline-icon">
+            <i class="ti ti-brain"></i>
+        </div>
+
+        <div class="pipeline-content">
+
+            <div class="pipeline-number">
+                {{ assessment_count|default(0) }}
+            </div>
+
+            <div class="pipeline-title">
+                In Assessment
+            </div>
+
+            <div class="pipeline-subtitle">
+                Senior Review
+            </div>
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+    <div class="pipeline-card">
+
+        <div class="pipeline-icon">
+            <i class="ti ti-message-2"></i>
+        </div>
+
+        <div class="pipeline-content">
+
+            <div class="pipeline-number">
+                {{ interview_count|default(0) }}
+            </div>
+
+            <div class="pipeline-title">
+                In Interview
+            </div>
+
+            <div class="pipeline-subtitle">
+                Awaiting Result
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="pipeline-card">
+
+        <div class="pipeline-icon">
+            <i class="ti ti-file-check"></i>
+        </div>
+
+        <div class="pipeline-content">
+
+            <div class="pipeline-number">
+                {{ offer_count|default(0) }}
+            </div>
+
+            <div class="pipeline-title">
+                Offer Stage
+            </div>
+
+            <div class="pipeline-subtitle">
+                Admin Action
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================
+      Pipeline Section
+========================== -->
+
+<div class="pipeline-header">
+
+    <div>
+
+        <h2>{{ selected_department_label }} Pipeline</h2>
+
+        <p>
+            {% if selected_department == "AI / ML" %}
+                Active hiring across AI Interview and AI Hackathon flows
+            {% else %}
+                Active hiring for {{ selected_department_label }}
+            {% endif %}
+        </p>
+
+    </div>
+
+    <a href="{{ request.url_for('department_pipeline') }}?department={{ selected_department | urlencode }}" class="view-link">
+
+        View Full Pipeline
+
+        <i class="ti ti-arrow-up-right"></i>
+
+    </a>
+
+</div>
+<!-- ===========================================
+     Candidate Pipeline Cards
+============================================ -->
+
+<div class="candidate-pipeline">
+
+    {% if featured_candidates %}
+
+        {% for candidate in featured_candidates %}
+
+            <div class="candidate-card">
+
+                <div class="candidate-top">
+
+                    <div>
+
+                        <span class="candidate-tag {{ candidate.flow_tag_class }}">
+                            {{ candidate.flow_tag_label }}
+                        </span>
+
+                        <h3>{{ candidate.name }}</h3>
+
+                        <p>
+                            Applied {{ candidate.applied_ago }} · {{ candidate.role_label }} · {{ candidate.department }}
+                        </p>
+
+                    </div>
+
+                <div class="candidate-score">
+
+                    <span class="score">{{ candidate.score_display }}</span>
+                    <small>{{ candidate.score_sublabel }}</small>
+
+                </div>
+                </div>
+
+                <!-- Progress -->
+
+                <div class="pipeline-progress">
+
+                    <div class="progress {{ candidate.stage_colors[0] }}"></div>
+                    <div class="progress {{ candidate.stage_colors[1] }}"></div>
+                    <div class="progress {{ candidate.stage_colors[2] }}"></div>
+                    <div class="progress {{ candidate.stage_colors[3] }}"></div>
+
+                </div>
+
+                <div class="candidate-footer">
+
+                    <span>
+
+                        Current:
+                        <strong>{{ candidate.stage_label }}</strong>
+
+                    </span>
+
+                    <span>
+
+                        {{ candidate.reviewer_count }} Reviewer{{ "s" if candidate.reviewer_count != 1 else "" }}
+
+                    </span>
+
+                </div>
+
+            </div>
+
+        {% endfor %}
+
+    {% else %}
+
+        <p class="eyebrow">No active {{ selected_department_label }} candidates yet.</p>
+
+    {% endif %}
+
+</div>
+
+<!-- ===========================================
+      Recent Candidates
+============================================ -->
+
+<div class="recent-section">
+
+    <div class="section-title">
+
+        <h2>Recent Candidates</h2>
+
+        <a href="{{ request.url_for('hr_candidates') }}">
+            View All
+        </a>
+
+    </div>
+
+    <table class="candidate-table">
+
+        <thead>
+
+            <tr>
+
+                <th>Name</th>
+
+                <th>Department</th>
+
+                <th>Stage</th>
+
+                <th>Score</th>
+
+                <th>Status</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            {% if recent_candidates %}
+
+                {% for candidate in recent_candidates %}
+
+                    <tr>
+
+                        <td>{{ candidate.name }}</td>
+
+                        <td>{{ candidate.department }}</td>
+
+                        <td>{{ candidate.stage_label }}</td>
+
+                        <td>{{ candidate.score if candidate.score is not none else "—" }}</td>
+
+                        <td>
+                            <span class="status {{ candidate.badge_class }}">
+                                {{ candidate.badge_label }}
+                            </span>
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            {% else %}
+
+                <tr>
+                    <td colspan="5">No candidates yet.</td>
+                </tr>
+
+            {% endif %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Stage 2: Candidate Table</h2>
+<form method="get" class="card row">
+  <input name="q" value="{{ q }}" placeholder="Search name/email/phone" />
+  <select name="fit">
+    <option value="">All fit tags</option>
+    <option value="Strong Fit" {% if fit=="Strong Fit" %}selected{% endif %}>Strong Fit</option>
+    <option value="Moderate Fit" {% if fit=="Moderate Fit" %}selected{% endif %}>Moderate Fit</option>
+  </select>
+  <select name="status">
+    <option value="">All Status</option>    
+    <option value="parsed" {% if status=="parsed" %}selected{% endif %}>
+      Parsed
+    </option>
+    <option value="accepted" {% if status=="accepted" %}selected{% endif %}>
+      Accepted
+    </option>
+
+    <option value="rejected" {% if status=="rejected" %}selected{% endif %}>
+      Rejected
+    </option>
+    <option value="submitted" {% if status=="submitted" %}selected{% endif %}>
+      Submitted
+    </option>
+    <option value="interview_scheduled" {% if status=="interview_scheduled" %}selected{% endif %}>
+      Interview Scheduled
+    </option>
+    <option value="interview_completed" {% if status=="interview_completed" %}selected{% endif %}>
+      Interview Completed
+    </option>
+    <option value="interview_passed" {% if status=="interview_passed" %}selected{% endif %}>
+      Interview Passed / Offer
+    </option>
+  </select>
+
+  <button type="submit">Filter</button>
+</form>
+<table>
+  <tr><th>Name</th><th>Email</th><th>Phone</th><th>Skills</th><th>Stage</th><th>Department</th><th>Status</th><th>Flow</th></tr>
+  {% for c in candidates %}
+  <tr>
+    <td><a href="{{ request.url_for('final_candidate_detail', candidate_id=c.id).path }}">{{ c.name }}</a></td>
+    <td>{{ c.email }}</td><td>{{ c.phone }}</td><td>{{ c.skills }}</td><td>{{ c.stage }}</td><td>{{ c.department }}</td><td>{{ c.status }}</td><td>{{ c.flow or "—" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+<div style="margin-top:20px; display:flex; justify-content:center; align-items:center; gap:12px;">
+
+  {% if page > 1 %}
+    <a 
+      href="?page={{ page - 1 }}&q={{ q }}&fit={{ fit }}&status={{ status }}"
+      style="
+        padding:8px 14px;
+        background:#f3f4f6;
+        border-radius:8px;
+        text-decoration:none;
+        color:#111827;
+        font-weight:600;
+        border:1px solid #1d1e1f;
+      "
+        onmouseover="this.style.background='#1f2937'; this.style.color='white';"
+        onmouseout="this.style.background='#f3f4f6'; this.style.color='#111827';"
+    >
+      ← Previous
+    </a>
+  {% endif %}
+{% if total_pages > 1 %}
+ {{ page }} / {{ total_pages }}
+  {% endif %}
+  {% if has_next %}
+    <a 
+      href="?page={{ page + 1 }}&q={{ q }}&fit={{ fit }}&status={{ status }}"
+    style="
+        padding:8px 14px;
+        background:#f3f4f6;
+        border-radius:8px;
+        text-decoration:none;
+        color:#111827;
+        font-weight:600;
+        border:1px solid #1d1e1f;
+      "
+        onmouseover="this.style.background='#1f2937'; this.style.color='white';"
+        onmouseout="this.style.background='#f3f4f6'; this.style.color='#111827';"
+    >
+      Next →
+    </a>
+  {% endif %}
+
+</div>
+<!-- Open candidate final detail in a new page (uses the existing Final route) -->
+{% endblock %}

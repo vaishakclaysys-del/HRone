@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="content">
+
+    <!-- Back -->
+    <div class="row mb-3">
+        <div class="flex-1">
+            <a href="javascript:history.back()" class="btn btn-link">
+                <i class="ti ti-arrow-left"></i>
+                Back
+            </a>
+        </div>
+    </div>
+
+    <!-- ================= Candidate Header ================= -->
+    <div class="card">
+
+        <div class="row">
+
+            <div class="avatar-badge">
+                {{ candidate.name[:2]|upper }}
+            </div>
+
+            <div class="flex-1">
+
+                <h2 style="margin-bottom:6px;">
+                    {{ candidate.name }}
+                </h2>
+
+                <div class="muted">
+                    {{ candidate.email or "-" }}
+                    &nbsp;•&nbsp;
+                    {{ candidate.department or "-" }}
+                    &nbsp;•&nbsp;
+                    {{ candidate.flow or "-" }}
+                </div>
+
+            </div>
+
+            {% if candidate.status == "accepted" %}
+                <span class="badge badge-success">
+            {% elif candidate.status == "interview_scheduled" %}
+                <span class="badge badge-warning">
+            {% elif candidate.status == "rejected" %}
+                <span class="badge badge-danger">
+            {% else %}
+                <span class="badge badge-info">
+            {% endif %}
+                {{ candidate.status|replace("_"," ")|title }}
+            </span>
+
+        </div>
+
+    </div>
+
+    {% if message %}
+    <div class="alert success">{{ message }}</div>
+    {% endif %}
+
+    {% if error %}
+    <div class="alert danger">{{ error }}</div>
+    {% endif %}
+
+    {% if user.role == "admin" %}
+    <!-- ================= Add Interviewer ================= -->
+    <!-- <div class="card">
+        <div class="card-header">
+            <h3>Add Interviewer</h3>
+        </div>
+
+        <form
+            method="post"
+            action="{{ request.url_for('final_add_interviewer', candidate_id=candidate.id).path }}?return_to=summary"
+            class="schedule-row"
+            style="grid-template-columns: 1fr 1fr auto;"
+        >
+            <select name="interviewer_id" required>
+                <option value="">Select interviewer</option>
+                {% for s in seniors %}
+                <option value="{{ s.id }}">{{ s.full_name }} ({{ s.username }})</option>
+                {% endfor %}
+            </select>
+            <input type="datetime-local" name="scheduled_at" required />
+            <button type="submit" class="btn-primary">Add Interviewer</button>
+        </form>
+    </div> -->
+    {% endif %}
+
+    {% if user.role == "hr" %}
+    <!-- ================= GitHub ================= -->
+    <div class="card">
+
+        <h3 class="card-title">
+            <i class="ti ti-brand-github"></i>
+            GitHub Submission
+        </h3>
+
+        {% if github_url %}
+
+        <div class="row">
+
+            <div class="flex-1">
+
+                <div class="mono" style="font-weight:600;">
+                    {{ github_url|replace("https://github.com/","") }}
+                </div>
+
+                <div class="muted mt-1">
+                    {% if github_submitted_at %}
+                        Submitted {{ github_submitted_at.strftime("%b %-d, %Y %H:%M") }}
+                    {% else %}
+                        Submission date unavailable
+                    {% endif %}
+                </div>
+
+            </div>
+
+            <a href="{{ github_url }}"
+               target="_blank"
+               class="btn btn-dark btn-sm">
+
+                <i class="ti ti-external-link"></i>
+                View Repository
+
+            </a>
+
+        </div>
+
+        {% else %}
+
+        <p class="muted">
+            No GitHub submission available.
+        </p>
+
+        {% endif %}
+
+    </div>
+
+    <!-- ================= Reviewer Scores ================= -->
+    <div class="card">
+
+        <div class="row mb-2">
+
+            <h3 class="card-title" style="margin:0;">
+                <i class="ti ti-clipboard-check"></i>
+                Reviewer Scores
+            </h3>
+
+            {% if avg_weighted_total is not none %}
+                <span class="badge badge-info right">
+                    Average {{ avg_weighted_total }}
+                </span>
+            {% endif %}
+
+        </div>
+
+        {% if hackathon_reviews %}
+
+        <div class="table-wrap">
+
+            <table class="table">
+
+                <thead>
+
+                <tr>
+                    <th>Reviewer</th>
+                    <th>Creativity</th>
+                    <th>Technical</th>
+                    <th>Feasibility</th>
+                    <th>Problem Fit</th>
+                    <th>Total</th>
+                    <th>Comments</th>
+                </tr>
+
+                </thead>
+
+                <tbody>
+
+                {% for review in hackathon_reviews %}
+
+                <tr>
+
+                    <td class="mono">
+                        {{ review.reviewer_id or "-" }}
+                    </td>
+
+                    <td>
+                        {{ review.creativity if review.creativity is not none else "-" }}
+                    </td>
+
+                    <td>
+                        {{ review.technical if review.technical is not none else "-" }}
+                    </td>
+
+                    <td>
+                        {{ review.feasibility if review.feasibility is not none else "-" }}
+                    </td>
+
+                    <td>
+                        {{ review.problem_fit if review.problem_fit is not none else "-" }}
+                    </td>
+
+                    <td>
+
+                        <strong>
+
+                        {% if review.weighted_total is not none %}
+                            {{ "%.1f"|format(review.weighted_total) }}
+                        {% else %}
+                            -
+                        {% endif %}
+
+                        </strong>
+
+                    </td>
+
+                    <td>
+                        {{ review.comments or "-" }}
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+        <p class="muted">
+            No reviewer scores submitted yet.
+        </p>
+
+        {% endif %}
+
+    </div>
+{% endif %}
+    <!-- ================= Interview Scores ================= -->
+
+    <div class="card">
+
+        <h3 class="card-title">
+            <i class="ti ti-microphone-2"></i>
+            Interview Scores
+        </h3>
+
+        {% if interview_scores %}
+
+            {% for entry in interview_scores %}
+
+            <div class="card" style="margin-bottom:14px;padding:18px;">
+
+                <div class="row">
+
+                    <div class="flex-1">
+
+                        <strong>
+                            {{ entry.interviewer_name }}
+                        </strong>
+
+                        {% if entry.interviewer_username %}
+                            <span class="muted">
+                                ({{ entry.interviewer_username }})
+                            </span>
+                        {% endif %}
+
+                    </div>
+
+                    <div>
+
+                        Score
+
+                        <strong>
+                            {{ entry.score }}
+                        </strong>
+
+                    </div>
+
+                </div>
+
+                <div class="mt-2">
+
+                    {% if entry.role_assessed %}
+                        <span class="badge badge-info">
+                            {{ entry.role_assessed }}
+                        </span>
+                    {% endif %}
+
+                    {% if entry.recommendation == "recommended" %}
+                        <span class="badge badge-success">
+
+                    {% elif entry.recommendation == "not_recommended" %}
+                        <span class="badge badge-danger">
+
+                    {% elif entry.recommendation == "strongly_recommended" %}
+                        <span class="badge badge-info">
+
+                    {% else %}
+                        <span class="badge badge-warning">
+
+                    {% endif %}
+
+                        {{ entry.recommendation|replace("_"," ")|title }}
+
+                    </span>
+
+                </div>
+                {% if entry.categories %}
+                    <div class="mt-3">
+                    <div class="detail-block-label">Category Breakdown</div>
+                        <div class="category-breakdown">
+                            {% for category in entry.categories %}
+                            <div class="category-row">
+                                <div class="category-row-top">
+                                    <span>{{ category.category_title|replace("&amp;", "&") }}</span>
+                                    <span>{{ category.percentage }}%</span>
+                                </div>
+                                <div class="category-bar-fill
+                                    {{ 'high' if category.percentage >= 70
+                                    else 'mid' if category.percentage >= 40
+                                    else 'low' }}"
+                                    style="--progress: {{ category.percentage }}%">
+                                    </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                {% if entry.comments %}
+
+                <div class="muted mt-2">
+
+                    {{ entry.comments }}
+
+                </div>
+
+                {% endif %}
+
+            </div>
+
+            {% endfor %}
+
+        {% else %}
+
+        <p class="muted">
+            No interview scores submitted yet.
+        </p>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}
